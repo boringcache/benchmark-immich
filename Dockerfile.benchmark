@@ -119,7 +119,9 @@ RUN --mount=type=secret,id=boringcache_token \
     --mount=type=secret,id=boringcache_save_token \
     --mount=type=bind,source=boringcache-bin,target=/usr/local/bin/boringcache \
     export BORINGCACHE_API_TOKEN="$(cat /run/secrets/boringcache_token)" && \
+    export BORINGCACHE_RESTORE_TOKEN="${BORINGCACHE_API_TOKEN}" && \
     save_token="$(cat /run/secrets/boringcache_save_token 2>/dev/null || true)" && \
+    export BORINGCACHE_SAVE_TOKEN="${save_token}" && \
     mkdir -p /buildcache/libheif && \
     if [ "$BORINGCACHE_INTERNAL_RESTORE_ENABLED" = "1" ]; then \
       boringcache restore --no-git "$BORINGCACHE_WORKSPACE" "${BORINGCACHE_TAG_LIBHEIF}:/buildcache/libheif" || true; \
@@ -170,7 +172,9 @@ RUN --mount=type=secret,id=boringcache_token \
     --mount=type=secret,id=boringcache_save_token \
     --mount=type=bind,source=boringcache-bin,target=/usr/local/bin/boringcache \
     export BORINGCACHE_API_TOKEN="$(cat /run/secrets/boringcache_token)" && \
+    export BORINGCACHE_RESTORE_TOKEN="${BORINGCACHE_API_TOKEN}" && \
     save_token="$(cat /run/secrets/boringcache_save_token 2>/dev/null || true)" && \
+    export BORINGCACHE_SAVE_TOKEN="${save_token}" && \
     mkdir -p /buildcache/libjxl && \
     if [ "$BORINGCACHE_INTERNAL_RESTORE_ENABLED" = "1" ]; then \
       boringcache restore --no-git "$BORINGCACHE_WORKSPACE" "${BORINGCACHE_TAG_LIBJXL}:/buildcache/libjxl" || true; \
@@ -233,7 +237,9 @@ RUN --mount=type=secret,id=boringcache_token \
     --mount=type=secret,id=boringcache_save_token \
     --mount=type=bind,source=boringcache-bin,target=/usr/local/bin/boringcache \
     export BORINGCACHE_API_TOKEN="$(cat /run/secrets/boringcache_token)" && \
+    export BORINGCACHE_RESTORE_TOKEN="${BORINGCACHE_API_TOKEN}" && \
     save_token="$(cat /run/secrets/boringcache_save_token 2>/dev/null || true)" && \
+    export BORINGCACHE_SAVE_TOKEN="${save_token}" && \
     mkdir -p /buildcache/libraw && \
     if [ "$BORINGCACHE_INTERNAL_RESTORE_ENABLED" = "1" ]; then \
       boringcache restore --no-git "$BORINGCACHE_WORKSPACE" "${BORINGCACHE_TAG_LIBRAW}:/buildcache/libraw" || true; \
@@ -289,7 +295,9 @@ RUN --mount=type=secret,id=boringcache_token \
     --mount=type=secret,id=boringcache_save_token \
     --mount=type=bind,source=boringcache-bin,target=/usr/local/bin/boringcache \
     export BORINGCACHE_API_TOKEN="$(cat /run/secrets/boringcache_token)" && \
+    export BORINGCACHE_RESTORE_TOKEN="${BORINGCACHE_API_TOKEN}" && \
     save_token="$(cat /run/secrets/boringcache_save_token 2>/dev/null || true)" && \
+    export BORINGCACHE_SAVE_TOKEN="${save_token}" && \
     mkdir -p /buildcache/imagemagick && \
     if [ "$BORINGCACHE_INTERNAL_RESTORE_ENABLED" = "1" ]; then \
       boringcache restore --no-git "$BORINGCACHE_WORKSPACE" "${BORINGCACHE_TAG_IMAGEMAGICK}:/buildcache/imagemagick" || true; \
@@ -329,7 +337,9 @@ RUN --mount=type=secret,id=boringcache_token \
     --mount=type=secret,id=boringcache_save_token \
     --mount=type=bind,source=boringcache-bin,target=/usr/local/bin/boringcache \
     export BORINGCACHE_API_TOKEN="$(cat /run/secrets/boringcache_token)" && \
+    export BORINGCACHE_RESTORE_TOKEN="${BORINGCACHE_API_TOKEN}" && \
     save_token="$(cat /run/secrets/boringcache_save_token 2>/dev/null || true)" && \
+    export BORINGCACHE_SAVE_TOKEN="${save_token}" && \
     mkdir -p /buildcache/libvips && \
     if [ "$BORINGCACHE_INTERNAL_RESTORE_ENABLED" = "1" ]; then \
       boringcache restore --no-git "$BORINGCACHE_WORKSPACE" "${BORINGCACHE_TAG_LIBVIPS}:/buildcache/libvips" || true; \
@@ -370,7 +380,9 @@ RUN --mount=type=secret,id=boringcache_token \
     --mount=type=secret,id=boringcache_save_token \
     --mount=type=bind,source=boringcache-bin,target=/usr/local/bin/boringcache \
     export BORINGCACHE_API_TOKEN="$(cat /run/secrets/boringcache_token)" && \
+    export BORINGCACHE_RESTORE_TOKEN="${BORINGCACHE_API_TOKEN}" && \
     save_token="$(cat /run/secrets/boringcache_save_token 2>/dev/null || true)" && \
+    export BORINGCACHE_SAVE_TOKEN="${save_token}" && \
     mkdir -p /buildcache/ffmpeg && \
     if [ "$BORINGCACHE_INTERNAL_RESTORE_ENABLED" = "1" ]; then \
       boringcache restore --no-git "$BORINGCACHE_WORKSPACE" "${BORINGCACHE_TAG_FFMPEG}:/buildcache/ffmpeg" || true; \
@@ -464,7 +476,9 @@ RUN --mount=type=secret,id=boringcache_token \
     --mount=type=bind,source=upstream/pnpm-lock.yaml,target=pnpm-lock.yaml \
     --mount=type=bind,source=upstream/pnpm-workspace.yaml,target=pnpm-workspace.yaml \
     export BORINGCACHE_API_TOKEN="$(cat /run/secrets/boringcache_token)" && \
+    export BORINGCACHE_RESTORE_TOKEN="${BORINGCACHE_API_TOKEN}" && \
     save_token="$(cat /run/secrets/boringcache_save_token 2>/dev/null || true)" && \
+    export BORINGCACHE_SAVE_TOKEN="${save_token}" && \
     pnpm config set store-dir "$PNPM_STORE_DIR" && \
     pnpm config set fetch-retries 6 && \
     pnpm config set fetch-retry-factor 2 && \
@@ -570,7 +584,9 @@ RUN --mount=type=secret,id=boringcache_token \
     --mount=type=secret,id=github_token \
     --mount=type=bind,source=boringcache-bin,target=/usr/local/bin/boringcache \
     export BORINGCACHE_API_TOKEN="$(cat /run/secrets/boringcache_token)" && \
+    export BORINGCACHE_RESTORE_TOKEN="${BORINGCACHE_API_TOKEN}" && \
     save_token="$(cat /run/secrets/boringcache_save_token 2>/dev/null || true)" && \
+    export BORINGCACHE_SAVE_TOKEN="${save_token}" && \
     github_token="$(cat /run/secrets/github_token 2>/dev/null || true)" && \
     if [ -n "$github_token" ]; then export GITHUB_TOKEN="$github_token" GH_TOKEN="$github_token" MISE_GITHUB_TOKEN="$github_token"; fi && \
     if [ "$BORINGCACHE_INTERNAL_RESTORE_ENABLED" = "1" ]; then \
