@@ -1,0 +1,715 @@
+# syntax=docker/dockerfile:1
+#
+# Immich Server Dockerfile optimized with BoringCache
+# Based on upstream immich-app/immich server/Dockerfile + base-images/server/Dockerfile
+#
+# Key changes:
+# - Inlines compilation of 5 C/C++ native libraries (libheif, libjxl, libraw, imagemagick, libvips)
+#   instead of using pre-built ghcr.io/immich-app/base-server-dev image
+# - BoringCache CLI caches each native library build + pnpm store + mise tools across Docker builds
+# - Even on cold Docker builds, native lib compilation is skipped if BC has a cached copy
+#
+# Usage:
+#   docker buildx build \
+#     --secret id=boringcache_token,env=BORINGCACHE_API_TOKEN \
+#     --build-arg BORINGCACHE_WORKSPACE=boringcache/benchmarks \
+#     -f Dockerfile.benchmark .
+
+ARG BORINGCACHE_WORKSPACE="boringcache/benchmarks"
+ARG BORINGCACHE_TAG_LIBHEIF="immich-libheif-1.20.2"
+ARG BORINGCACHE_TAG_LIBJXL="immich-libjxl-0.11.1"
+ARG BORINGCACHE_TAG_LIBRAW="immich-libraw-0.22.0"
+ARG BORINGCACHE_TAG_IMAGEMAGICK="immich-imagemagick-7.1.2-2"
+ARG BORINGCACHE_TAG_LIBVIPS="immich-libvips-8.17.3"
+ARG BORINGCACHE_TAG_FFMPEG="immich-ffmpeg-7.1.3-1"
+ARG BORINGCACHE_TAG_PNPM="immich-pnpm"
+ARG BORINGCACHE_TAG_MISE="immich-mise"
+ARG BORINGCACHE_INTERNAL_RESTORE_ENABLED="1"
+ARG BORINGCACHE_INTERNAL_SAVE_ENABLED="1"
+
+# ==============================================================================
+# base: Debian trixie-slim + all build dependencies (matches upstream base image)
+# ==============================================================================
+FROM node:24.12.0-trixie-slim@sha256:35876cf614d84f076fcd51792d2ebe8ef21663d785d52ef09c2e459b0b199efa AS base
+
+ARG DEBIAN_FRONTEND=noninteractive
+ENV DEBIAN_RELEASE=trixie
+
+WORKDIR /usr/src/app
+
+ENV LD_LIBRARY_PATH=/usr/local/lib \
+  LD_RUN_PATH=/usr/local/lib
+
+# Enable contrib/non-free and testing suite at lower priority
+RUN sed -i -e's/ main/ main contrib non-free non-free-firmware/g' /etc/apt/sources.list.d/debian.sources && \
+  sed -i -e"s/ trixie-updates/ trixie-updates testing/g" /etc/apt/sources.list.d/debian.sources && \
+  printf 'Package: *\nPin: release a=unstable\nPin-Priority: 450\n\nPackage: *\nPin: release a=testing\nPin-Priority: 450\n' > /etc/apt/preferences.d/preferences
+
+# Install PostgreSQL repository
+RUN apt-get update && \
+  apt-get install --no-install-recommends -yqq ca-certificates && \
+  mkdir -p /usr/share/postgresql-common/pgdg
+
+ADD --chmod=644 https://www.postgresql.org/media/keys/ACCC4CF8.asc /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc
+
+RUN echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt trixie-pgdg main" > /etc/apt/sources.list.d/pgdg.list && \
+  apt-get update && \
+  apt-get install --no-install-recommends -yqq \
+  git \
+  autoconf \
+  automake \
+  libtool \
+  libltdl-dev \
+  build-essential \
+  cmake \
+  jq \
+  libbrotli-dev \
+  libde265-dev/testing \
+  libexif-dev \
+  libexpat1-dev \
+  libglib2.0-dev \
+  libgsf-1-dev \
+  libmimalloc3 \
+  libjpeg62-turbo-dev \
+  liblcms2-dev \
+  librsvg2-dev \
+  libspng-dev \
+  meson \
+  ninja-build \
+  pkg-config \
+  wget \
+  unzip \
+  zlib1g \
+  postgresql-client-14 \
+  postgresql-client-15 \
+  postgresql-client-16 \
+  postgresql-client-17 \
+  postgresql-client-18 \
+  tini \
+  make \
+  ocl-icd-libopencl1 \
+  libopenmpt0 \
+  libbluray2 \
+  libvpx9 \
+  libzvbi0 \
+  libmp3lame0 \
+  libopus0 \
+  libtheora0 \
+  libvorbis0a \
+  libvorbisenc2 \
+  libx264-164 \
+  libdav1d-dev \
+  libhwy-dev \
+  libwebp-dev \
+  libio-compress-brotli-perl \
+  libaom-dev && \
+  rm -rf /var/lib/apt/lists/*
+
+# ==============================================================================
+# libheif: v1.20.2
+# ==============================================================================
+FROM base AS libheif
+
+ARG BORINGCACHE_WORKSPACE
+ARG BORINGCACHE_TAG_LIBHEIF
+ARG BORINGCACHE_INTERNAL_RESTORE_ENABLED
+ARG BORINGCACHE_INTERNAL_SAVE_ENABLED
+
+RUN --mount=type=secret,id=boringcache_token \
+    --mount=type=secret,id=boringcache_save_token \
+    --mount=type=bind,source=boringcache-bin,target=/usr/local/bin/boringcache \
+    export BORINGCACHE_API_TOKEN="$(cat /run/secrets/boringcache_token)" && \
+    save_token="$(cat /run/secrets/boringcache_save_token 2>/dev/null || true)" && \
+    mkdir -p /buildcache/libheif && \
+    if [ "$BORINGCACHE_INTERNAL_RESTORE_ENABLED" = "1" ]; then \
+      boringcache restore --no-git "$BORINGCACHE_WORKSPACE" "${BORINGCACHE_TAG_LIBHEIF}:/buildcache/libheif" || true; \
+    fi && \
+    if [ ! -f /buildcache/libheif/lib/libheif.so ]; then \
+      echo "Building libheif from source..." && \
+      git clone https://github.com/strukturag/libheif.git /tmp/libheif && \
+      cd /tmp/libheif && \
+      git reset --hard 35dad50a9145332a7bfdf1ff6aef6801fb613d68 && \
+      mkdir build && cd build && \
+      cmake --preset=release-noplugins \
+        -DCMAKE_INSTALL_PREFIX=/buildcache/libheif \
+        -DWITH_DAV1D=ON \
+        -DENABLE_PARALLEL_TILE_DECODING=ON \
+        -DWITH_LIBSHARPYUV=ON \
+        -DWITH_LIBDE265=ON \
+        -DWITH_AOM_DECODER=OFF \
+        -DWITH_AOM_ENCODER=ON \
+        -DWITH_X265=OFF \
+        -DWITH_EXAMPLES=OFF \
+        .. && \
+      make -j"$(nproc)" install && \
+      cd / && rm -rf /tmp/libheif && \
+      echo "libheif built successfully"; \
+    else \
+      echo "libheif restored from BoringCache!"; \
+    fi && \
+    if [ -n "$save_token" ]; then \
+      boringcache save --no-git "$BORINGCACHE_WORKSPACE" "${BORINGCACHE_TAG_LIBHEIF}:/buildcache/libheif"; \
+    fi && \
+    cp -a /buildcache/libheif/lib/* /usr/local/lib/ 2>/dev/null || true && \
+    cp -a /buildcache/libheif/include/* /usr/local/include/ 2>/dev/null || true && \
+    ldconfig /usr/local/lib
+
+# ==============================================================================
+# libjxl: v0.11.1 (with jpegli patches)
+# ==============================================================================
+FROM base AS libjxl
+
+ARG BORINGCACHE_WORKSPACE
+ARG BORINGCACHE_TAG_LIBJXL
+ARG BORINGCACHE_INTERNAL_RESTORE_ENABLED
+ARG BORINGCACHE_INTERNAL_SAVE_ENABLED
+
+COPY libjxl-patches/ /tmp/libjxl-patches/
+
+RUN --mount=type=secret,id=boringcache_token \
+    --mount=type=secret,id=boringcache_save_token \
+    --mount=type=bind,source=boringcache-bin,target=/usr/local/bin/boringcache \
+    export BORINGCACHE_API_TOKEN="$(cat /run/secrets/boringcache_token)" && \
+    save_token="$(cat /run/secrets/boringcache_save_token 2>/dev/null || true)" && \
+    mkdir -p /buildcache/libjxl && \
+    if [ "$BORINGCACHE_INTERNAL_RESTORE_ENABLED" = "1" ]; then \
+      boringcache restore --no-git "$BORINGCACHE_WORKSPACE" "${BORINGCACHE_TAG_LIBJXL}:/buildcache/libjxl" || true; \
+    fi && \
+    if [ ! -f /buildcache/libjxl/lib/libjxl.so ]; then \
+      echo "Building libjxl from source..." && \
+      git clone https://github.com/libjxl/libjxl.git /tmp/libjxl && \
+      cd /tmp/libjxl && \
+      git reset --hard 794a5dcf0d54f9f0b20d288a12e87afb91d20dfc && \
+      git submodule update --init --recursive --depth 1 --recommend-shallow && \
+      git apply /tmp/libjxl-patches/jpegli-empty-dht-marker.patch && \
+      git apply /tmp/libjxl-patches/jpegli-icc-warning.patch && \
+      mkdir build && cd build && \
+      cmake \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX=/buildcache/libjxl \
+        -DBUILD_TESTING=OFF \
+        -DJPEGXL_ENABLE_DOXYGEN=OFF \
+        -DJPEGXL_ENABLE_MANPAGES=OFF \
+        -DJPEGXL_ENABLE_PLUGIN_GIMP210=OFF \
+        -DJPEGXL_ENABLE_BENCHMARK=OFF \
+        -DJPEGXL_ENABLE_EXAMPLES=OFF \
+        -DJPEGXL_FORCE_SYSTEM_BROTLI=ON \
+        -DJPEGXL_FORCE_SYSTEM_HWY=ON \
+        -DJPEGXL_ENABLE_JPEGLI=ON \
+        -DJPEGXL_ENABLE_JPEGLI_LIBJPEG=ON \
+        -DJPEGXL_INSTALL_JPEGLI_LIBJPEG=ON \
+        -DJPEGXL_ENABLE_AVX512=ON \
+        -DJPEGXL_ENABLE_AVX512_ZEN4=ON \
+        -DJPEGXL_ENABLE_PLUGINS=ON \
+        -DJPEGLI_LIBJPEG_LIBRARY_SOVERSION=62 \
+        -DJPEGLI_LIBJPEG_LIBRARY_VERSION=62.3.0 \
+        -DLIBJPEG_TURBO_VERSION_NUMBER=2001005 \
+        .. && \
+      cmake --build . -- -j"$(nproc)" && \
+      cmake --install . && \
+      cd / && rm -rf /tmp/libjxl && \
+      echo "libjxl built successfully"; \
+    else \
+      echo "libjxl restored from BoringCache!"; \
+    fi && \
+    if [ -n "$save_token" ]; then \
+      boringcache save --no-git "$BORINGCACHE_WORKSPACE" "${BORINGCACHE_TAG_LIBJXL}:/buildcache/libjxl"; \
+    fi && \
+    cp -a /buildcache/libjxl/lib/* /usr/local/lib/ 2>/dev/null || true && \
+    cp -a /buildcache/libjxl/include/* /usr/local/include/ 2>/dev/null || true && \
+    ldconfig /usr/local/lib
+
+# ==============================================================================
+# libraw: v0.22.0
+# ==============================================================================
+FROM base AS libraw
+
+ARG BORINGCACHE_WORKSPACE
+ARG BORINGCACHE_TAG_LIBRAW
+ARG BORINGCACHE_INTERNAL_RESTORE_ENABLED
+ARG BORINGCACHE_INTERNAL_SAVE_ENABLED
+
+RUN --mount=type=secret,id=boringcache_token \
+    --mount=type=secret,id=boringcache_save_token \
+    --mount=type=bind,source=boringcache-bin,target=/usr/local/bin/boringcache \
+    export BORINGCACHE_API_TOKEN="$(cat /run/secrets/boringcache_token)" && \
+    save_token="$(cat /run/secrets/boringcache_save_token 2>/dev/null || true)" && \
+    mkdir -p /buildcache/libraw && \
+    if [ "$BORINGCACHE_INTERNAL_RESTORE_ENABLED" = "1" ]; then \
+      boringcache restore --no-git "$BORINGCACHE_WORKSPACE" "${BORINGCACHE_TAG_LIBRAW}:/buildcache/libraw" || true; \
+    fi && \
+    if [ ! -f /buildcache/libraw/lib/libraw.so ]; then \
+      echo "Building libraw from source..." && \
+      git clone https://github.com/libraw/libraw.git /tmp/libraw && \
+      cd /tmp/libraw && \
+      git reset --hard 0b56545a4f828743f28a4345cdfdd4c49f9f9a2a && \
+      autoreconf --install && \
+      ./configure --prefix=/buildcache/libraw --disable-examples && \
+      make -j"$(nproc)" && \
+      make install && \
+      cd / && rm -rf /tmp/libraw && \
+      echo "libraw built successfully"; \
+    else \
+      echo "libraw restored from BoringCache!"; \
+    fi && \
+    if [ -n "$save_token" ]; then \
+      boringcache save --no-git "$BORINGCACHE_WORKSPACE" "${BORINGCACHE_TAG_LIBRAW}:/buildcache/libraw"; \
+    fi && \
+    cp -a /buildcache/libraw/lib/* /usr/local/lib/ 2>/dev/null || true && \
+    cp -a /buildcache/libraw/include/* /usr/local/include/ 2>/dev/null || true && \
+    ldconfig /usr/local/lib
+
+# ==============================================================================
+# imagemagick: v7.1.2-2 (depends on libheif, libjxl, libraw)
+# ==============================================================================
+FROM libraw AS imagemagick
+
+ARG BORINGCACHE_WORKSPACE
+ARG BORINGCACHE_TAG_IMAGEMAGICK
+ARG BORINGCACHE_INTERNAL_RESTORE_ENABLED
+ARG BORINGCACHE_INTERNAL_SAVE_ENABLED
+
+# Merge libheif and libjxl outputs into this stage
+COPY --from=libheif /buildcache/libheif/lib/ /usr/local/lib/libheif-staging/
+COPY --from=libheif /buildcache/libheif/include/ /tmp/libheif-include/
+COPY --from=libjxl /buildcache/libjxl/lib/ /usr/local/lib/libjxl-staging/
+COPY --from=libjxl /buildcache/libjxl/include/ /tmp/libjxl-include/
+
+RUN cp -a /usr/local/lib/libheif-staging/libheif* /usr/local/lib/ && \
+  cp -a /usr/local/lib/libjxl-staging/libjxl* /usr/local/lib/libjxl-staging/libjpeg* /usr/local/lib/ && \
+  cp -a /usr/local/lib/libheif-staging/pkgconfig/* /usr/local/lib/pkgconfig/ 2>/dev/null || true && \
+  cp -a /usr/local/lib/libjxl-staging/pkgconfig/* /usr/local/lib/pkgconfig/ 2>/dev/null || true && \
+  rm -rf /usr/local/lib/libheif-staging /usr/local/lib/libjxl-staging && \
+  cp -a /tmp/libheif-include/* /usr/local/include/ 2>/dev/null || true && \
+  cp -a /tmp/libjxl-include/* /usr/local/include/ 2>/dev/null || true && \
+  rm -rf /tmp/libheif-include /tmp/libjxl-include && \
+  ldconfig /usr/local/lib
+
+RUN --mount=type=secret,id=boringcache_token \
+    --mount=type=secret,id=boringcache_save_token \
+    --mount=type=bind,source=boringcache-bin,target=/usr/local/bin/boringcache \
+    export BORINGCACHE_API_TOKEN="$(cat /run/secrets/boringcache_token)" && \
+    save_token="$(cat /run/secrets/boringcache_save_token 2>/dev/null || true)" && \
+    mkdir -p /buildcache/imagemagick && \
+    if [ "$BORINGCACHE_INTERNAL_RESTORE_ENABLED" = "1" ]; then \
+      boringcache restore --no-git "$BORINGCACHE_WORKSPACE" "${BORINGCACHE_TAG_IMAGEMAGICK}:/buildcache/imagemagick" || true; \
+    fi && \
+    if [ ! -f /buildcache/imagemagick/lib/libMagickCore-7.Q16HDRI.so ]; then \
+      echo "Building ImageMagick from source..." && \
+      git clone https://github.com/ImageMagick/ImageMagick.git /tmp/ImageMagick && \
+      cd /tmp/ImageMagick && \
+      git reset --hard 8289a3388a085ad5ae81aa6812f21554bdfd54f2 && \
+      ./configure --prefix=/buildcache/imagemagick --with-modules CPPFLAGS="-DMAGICK_LIBRAW_VERSION_TAIL=202502" && \
+      make -j"$(nproc)" && \
+      make install && \
+      cd / && rm -rf /tmp/ImageMagick && \
+      echo "ImageMagick built successfully"; \
+    else \
+      echo "ImageMagick restored from BoringCache!"; \
+    fi && \
+    if [ -n "$save_token" ]; then \
+      boringcache save --no-git "$BORINGCACHE_WORKSPACE" "${BORINGCACHE_TAG_IMAGEMAGICK}:/buildcache/imagemagick"; \
+    fi && \
+    cp -a /buildcache/imagemagick/lib/* /usr/local/lib/ 2>/dev/null || true && \
+    cp -a /buildcache/imagemagick/include/* /usr/local/include/ 2>/dev/null || true && \
+    cp -a /buildcache/imagemagick/bin/* /usr/local/bin/ 2>/dev/null || true && \
+    ldconfig /usr/local/lib
+
+# ==============================================================================
+# libvips: v8.17.3 (depends on imagemagick and all above)
+# ==============================================================================
+FROM imagemagick AS libvips
+
+ARG BORINGCACHE_WORKSPACE
+ARG BORINGCACHE_TAG_LIBVIPS
+ARG BORINGCACHE_INTERNAL_RESTORE_ENABLED
+ARG BORINGCACHE_INTERNAL_SAVE_ENABLED
+
+RUN --mount=type=secret,id=boringcache_token \
+    --mount=type=secret,id=boringcache_save_token \
+    --mount=type=bind,source=boringcache-bin,target=/usr/local/bin/boringcache \
+    export BORINGCACHE_API_TOKEN="$(cat /run/secrets/boringcache_token)" && \
+    save_token="$(cat /run/secrets/boringcache_save_token 2>/dev/null || true)" && \
+    mkdir -p /buildcache/libvips && \
+    if [ "$BORINGCACHE_INTERNAL_RESTORE_ENABLED" = "1" ]; then \
+      boringcache restore --no-git "$BORINGCACHE_WORKSPACE" "${BORINGCACHE_TAG_LIBVIPS}:/buildcache/libvips" || true; \
+    fi && \
+    if [ ! -f /buildcache/libvips/lib/libvips.so ]; then \
+      echo "Building libvips from source..." && \
+      git clone https://github.com/libvips/libvips.git /tmp/libvips && \
+      cd /tmp/libvips && \
+      git reset --hard 0c9151a4f416d2f8ae20a755db218f6637050eec && \
+      meson setup build --buildtype=release --prefix=/buildcache/libvips --libdir=lib -Dintrospection=disabled -Dtiff=disabled && \
+      cd build && \
+      ninja install && \
+      cd / && rm -rf /tmp/libvips && \
+      echo "libvips built successfully"; \
+    else \
+      echo "libvips restored from BoringCache!"; \
+    fi && \
+    if [ -n "$save_token" ]; then \
+      boringcache save --no-git "$BORINGCACHE_WORKSPACE" "${BORINGCACHE_TAG_LIBVIPS}:/buildcache/libvips"; \
+    fi && \
+    cp -a /buildcache/libvips/lib/* /usr/local/lib/ 2>/dev/null || true && \
+    cp -a /buildcache/libvips/include/* /usr/local/include/ 2>/dev/null || true && \
+    cp -a /buildcache/libvips/bin/vips* /usr/local/bin/ 2>/dev/null || true && \
+    ldconfig /usr/local/lib
+
+# ==============================================================================
+# dev: Install ffmpeg + merge all native libs + geodata
+# ==============================================================================
+FROM libvips AS dev
+
+ARG BORINGCACHE_WORKSPACE
+ARG BORINGCACHE_TAG_FFMPEG
+ARG BORINGCACHE_INTERNAL_RESTORE_ENABLED
+ARG BORINGCACHE_INTERNAL_SAVE_ENABLED
+
+# Install jellyfin-ffmpeg from .deb (not built from source)
+RUN --mount=type=secret,id=boringcache_token \
+    --mount=type=secret,id=boringcache_save_token \
+    --mount=type=bind,source=boringcache-bin,target=/usr/local/bin/boringcache \
+    export BORINGCACHE_API_TOKEN="$(cat /run/secrets/boringcache_token)" && \
+    save_token="$(cat /run/secrets/boringcache_save_token 2>/dev/null || true)" && \
+    mkdir -p /buildcache/ffmpeg && \
+    if [ "$BORINGCACHE_INTERNAL_RESTORE_ENABLED" = "1" ]; then \
+      boringcache restore --no-git "$BORINGCACHE_WORKSPACE" "${BORINGCACHE_TAG_FFMPEG}:/buildcache/ffmpeg" || true; \
+    fi && \
+    if [ ! -f /buildcache/ffmpeg/jellyfin-ffmpeg.deb ]; then \
+      echo "Downloading jellyfin-ffmpeg..." && \
+      FFMPEG_VERSION="7.1.3-1" && \
+      wget -nv "https://github.com/jellyfin/jellyfin-ffmpeg/releases/download/v${FFMPEG_VERSION}/jellyfin-ffmpeg7_${FFMPEG_VERSION}-trixie_amd64.deb" \
+        -O /buildcache/ffmpeg/jellyfin-ffmpeg.deb && \
+      echo "jellyfin-ffmpeg downloaded"; \
+    else \
+      echo "jellyfin-ffmpeg restored from BoringCache!"; \
+    fi && \
+    apt-get update && \
+    apt-get -yqq -f install /buildcache/ffmpeg/jellyfin-ffmpeg.deb && \
+    rm -rf /var/lib/apt/lists/* && \
+    if [ -n "$save_token" ]; then \
+      boringcache save --no-git "$BORINGCACHE_WORKSPACE" "${BORINGCACHE_TAG_FFMPEG}:/buildcache/ffmpeg"; \
+    fi && \
+    ln -sf /usr/lib/jellyfin-ffmpeg/ffmpeg /usr/bin/ffmpeg && \
+    ln -sf /usr/lib/jellyfin-ffmpeg/ffprobe /usr/bin/ffprobe && \
+    ldconfig /usr/lib/jellyfin-ffmpeg/lib
+
+ENV LD_LIBRARY_PATH=/usr/lib/jellyfin-ffmpeg/lib:/usr/lib/wsl/lib:$LD_LIBRARY_PATH
+
+# Download geodata
+RUN mkdir -p /build/geodata && \
+  wget -nv https://download.geonames.org/export/dump/cities500.zip -O /build/geodata/cities500.zip && \
+  wget -nv https://download.geonames.org/export/dump/admin1CodesASCII.txt -O /build/geodata/admin1CodesASCII.txt && \
+  wget -nv https://download.geonames.org/export/dump/admin2Codes.txt -O /build/geodata/admin2Codes.txt && \
+  wget -nv https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/geojson/ne_10m_admin_0_countries.geojson -O /build/geodata/ne_10m_admin_0_countries.geojson && \
+  unzip /build/geodata/cities500.zip -d /build/geodata/ && \
+  rm /build/geodata/cities500.zip && \
+  date --iso-8601=seconds | tr -d "\n" > /build/geodata/geodata-date.txt
+
+# ==============================================================================
+# builder: Node.js + pnpm (inherits from dev with all native libs)
+# ==============================================================================
+FROM dev AS builder
+
+ARG BORINGCACHE_WORKSPACE
+ARG BORINGCACHE_TAG_PNPM
+ARG BORINGCACHE_INTERNAL_RESTORE_ENABLED
+ARG BORINGCACHE_INTERNAL_SAVE_ENABLED
+
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0 \
+  CI=1 \
+  COREPACK_HOME=/tmp \
+  PNPM_STORE_DIR=/buildcache/pnpm-store \
+  PNPM_VERSION=10.30.0
+
+RUN set -eu && \
+    corepack enable && \
+    attempt=1 && \
+    while true; do \
+      if corepack prepare "pnpm@${PNPM_VERSION}" --activate && pnpm --version; then \
+        break; \
+      fi; \
+      if [ "$attempt" -ge 5 ]; then \
+        echo "Failed to activate pnpm ${PNPM_VERSION} after ${attempt} attempts" >&2; \
+        exit 1; \
+      fi; \
+      sleep "$((attempt * 5))" && \
+      attempt="$((attempt + 1))"; \
+    done
+
+# Restore shared pnpm store from BoringCache
+RUN --mount=type=secret,id=boringcache_token \
+    --mount=type=bind,source=boringcache-bin,target=/usr/local/bin/boringcache \
+    export BORINGCACHE_API_TOKEN="$(cat /run/secrets/boringcache_token)" && \
+    if [ "$BORINGCACHE_INTERNAL_RESTORE_ENABLED" = "1" ]; then \
+      boringcache restore --no-git "$BORINGCACHE_WORKSPACE" "${BORINGCACHE_TAG_PNPM}:/buildcache/pnpm-store" || true; \
+    fi
+
+
+FROM builder AS server
+
+ARG BORINGCACHE_WORKSPACE
+ARG BORINGCACHE_TAG_PNPM
+ARG BORINGCACHE_INTERNAL_RESTORE_ENABLED
+ARG BORINGCACHE_INTERNAL_SAVE_ENABLED
+WORKDIR /usr/src/app
+COPY upstream/server ./server/
+
+# Build server and save pnpm store to BoringCache
+RUN --mount=type=secret,id=boringcache_token \
+    --mount=type=secret,id=boringcache_save_token \
+    --mount=type=bind,source=boringcache-bin,target=/usr/local/bin/boringcache \
+    --mount=type=bind,source=upstream/package.json,target=package.json \
+    --mount=type=bind,source=upstream/.pnpmfile.cjs,target=.pnpmfile.cjs \
+    --mount=type=bind,source=upstream/pnpm-lock.yaml,target=pnpm-lock.yaml \
+    --mount=type=bind,source=upstream/pnpm-workspace.yaml,target=pnpm-workspace.yaml \
+    export BORINGCACHE_API_TOKEN="$(cat /run/secrets/boringcache_token)" && \
+    save_token="$(cat /run/secrets/boringcache_save_token 2>/dev/null || true)" && \
+    pnpm config set store-dir "$PNPM_STORE_DIR" && \
+    pnpm config set fetch-retries 6 && \
+    pnpm config set fetch-retry-factor 2 && \
+    pnpm config set fetch-retry-mintimeout 10000 && \
+    pnpm config set fetch-retry-maxtimeout 120000 && \
+    attempt=1 && \
+    while true; do \
+      if SHARP_IGNORE_GLOBAL_LIBVIPS=true pnpm --filter immich --frozen-lockfile build && \
+         SHARP_FORCE_GLOBAL_LIBVIPS=true pnpm --filter immich --frozen-lockfile --prod --no-optional deploy /output/server-pruned; then \
+        break; \
+      fi; \
+      if [ "$attempt" -ge 3 ]; then \
+        echo "pnpm server build failed after retries" >&2; \
+        exit 1; \
+      fi; \
+      sleep "$((attempt * 10))" && \
+      attempt="$((attempt + 1))"; \
+    done && \
+    if [ -n "$save_token" ]; then \
+      boringcache save --no-git "$BORINGCACHE_WORKSPACE" "${BORINGCACHE_TAG_PNPM}:/buildcache/pnpm-store"; \
+    fi
+
+
+FROM builder AS web
+
+WORKDIR /usr/src/app
+COPY upstream/web ./web/
+COPY upstream/i18n ./i18n/
+COPY upstream/open-api ./open-api/
+
+RUN --mount=type=bind,source=upstream/package.json,target=package.json \
+    --mount=type=bind,source=upstream/.pnpmfile.cjs,target=.pnpmfile.cjs \
+    --mount=type=bind,source=upstream/pnpm-lock.yaml,target=pnpm-lock.yaml \
+    --mount=type=bind,source=upstream/pnpm-workspace.yaml,target=pnpm-workspace.yaml \
+    pnpm config set store-dir "$PNPM_STORE_DIR" && \
+    pnpm config set fetch-retries 6 && \
+    pnpm config set fetch-retry-factor 2 && \
+    pnpm config set fetch-retry-mintimeout 10000 && \
+    pnpm config set fetch-retry-maxtimeout 120000 && \
+    attempt=1 && \
+    while true; do \
+      if SHARP_IGNORE_GLOBAL_LIBVIPS=true pnpm --filter @immich/sdk --filter immich-web --frozen-lockfile --force install && \
+         pnpm --filter @immich/sdk --filter immich-web build; then \
+        break; \
+      fi; \
+      if [ "$attempt" -ge 3 ]; then \
+        echo "pnpm web build failed after retries" >&2; \
+        exit 1; \
+      fi; \
+      sleep "$((attempt * 10))" && \
+      attempt="$((attempt + 1))"; \
+    done
+
+
+FROM builder AS cli
+
+COPY upstream/cli ./cli/
+COPY upstream/open-api ./open-api/
+
+RUN --mount=type=bind,source=upstream/package.json,target=package.json \
+    --mount=type=bind,source=upstream/.pnpmfile.cjs,target=.pnpmfile.cjs \
+    --mount=type=bind,source=upstream/pnpm-lock.yaml,target=pnpm-lock.yaml \
+    --mount=type=bind,source=upstream/pnpm-workspace.yaml,target=pnpm-workspace.yaml \
+    pnpm config set store-dir "$PNPM_STORE_DIR" && \
+    pnpm config set fetch-retries 6 && \
+    pnpm config set fetch-retry-factor 2 && \
+    pnpm config set fetch-retry-mintimeout 10000 && \
+    pnpm config set fetch-retry-maxtimeout 120000 && \
+    attempt=1 && \
+    while true; do \
+      if pnpm --filter @immich/sdk --filter @immich/cli --frozen-lockfile install && \
+         pnpm --filter @immich/sdk --filter @immich/cli build && \
+         pnpm --filter @immich/cli --prod --no-optional deploy /output/cli-pruned; then \
+        break; \
+      fi; \
+      if [ "$attempt" -ge 3 ]; then \
+        echo "pnpm cli build failed after retries" >&2; \
+        exit 1; \
+      fi; \
+      sleep "$((attempt * 10))" && \
+      attempt="$((attempt + 1))"; \
+    done
+
+
+FROM builder AS plugins
+
+ARG TARGETPLATFORM
+ARG BORINGCACHE_WORKSPACE
+ARG BORINGCACHE_TAG_MISE
+ARG BORINGCACHE_INTERNAL_RESTORE_ENABLED
+ARG BORINGCACHE_INTERNAL_SAVE_ENABLED
+
+COPY --from=ghcr.io/jdx/mise:2026.1.1@sha256:a55c391f7582f34c58bce1a85090cd526596402ba77fc32b06c49b8404ef9c14 /usr/local/bin/mise /usr/local/bin/mise
+
+WORKDIR /usr/src/app
+COPY upstream/plugins/mise.toml ./plugins/
+ENV MISE_TRUSTED_CONFIG_PATHS=/usr/src/app/plugins/mise.toml
+ENV MISE_DATA_DIR=/buildcache/mise
+
+# Restore mise tools cache and install
+RUN --mount=type=secret,id=boringcache_token \
+    --mount=type=secret,id=boringcache_save_token \
+    --mount=type=secret,id=github_token \
+    --mount=type=bind,source=boringcache-bin,target=/usr/local/bin/boringcache \
+    export BORINGCACHE_API_TOKEN="$(cat /run/secrets/boringcache_token)" && \
+    save_token="$(cat /run/secrets/boringcache_save_token 2>/dev/null || true)" && \
+    github_token="$(cat /run/secrets/github_token 2>/dev/null || true)" && \
+    if [ -n "$github_token" ]; then export GITHUB_TOKEN="$github_token" GH_TOKEN="$github_token" MISE_GITHUB_TOKEN="$github_token"; fi && \
+    if [ "$BORINGCACHE_INTERNAL_RESTORE_ENABLED" = "1" ]; then \
+      boringcache restore --no-git "$BORINGCACHE_WORKSPACE" "${BORINGCACHE_TAG_MISE}:/buildcache/mise" || true; \
+    fi && \
+    mise install --cd plugins && \
+    if [ -n "$save_token" ]; then \
+      boringcache save --no-git "$BORINGCACHE_WORKSPACE" "${BORINGCACHE_TAG_MISE}:/buildcache/mise"; \
+    fi
+
+COPY upstream/plugins ./plugins/
+
+# Build plugins
+RUN --mount=type=bind,source=upstream/package.json,target=package.json \
+    --mount=type=bind,source=upstream/.pnpmfile.cjs,target=.pnpmfile.cjs \
+    --mount=type=bind,source=upstream/pnpm-lock.yaml,target=pnpm-lock.yaml \
+    --mount=type=bind,source=upstream/pnpm-workspace.yaml,target=pnpm-workspace.yaml \
+    attempt=1 && \
+    while true; do \
+      if (cd plugins && mise run build); then \
+        break; \
+      fi; \
+      if [ "$attempt" -ge 3 ]; then \
+        echo "plugins build failed after retries" >&2; \
+        exit 1; \
+      fi; \
+      sleep "$((attempt * 10))" && \
+      attempt="$((attempt + 1))"; \
+    done
+
+
+# ==============================================================================
+# prod: Runtime-only final image
+# ==============================================================================
+FROM node:24.12.0-trixie-slim@sha256:35876cf614d84f076fcd51792d2ebe8ef21663d785d52ef09c2e459b0b199efa AS prod
+
+ARG DEBIAN_FRONTEND=noninteractive
+ENV DEBIAN_RELEASE=trixie
+
+WORKDIR /build
+
+# Enable contrib/non-free and testing suite
+RUN sed -i -e's/ main/ main contrib non-free non-free-firmware/g' /etc/apt/sources.list.d/debian.sources && \
+  sed -i -e"s/ trixie-updates/ trixie-updates testing/g" /etc/apt/sources.list.d/debian.sources && \
+  printf 'Package: *\nPin: release a=unstable\nPin-Priority: 450\n\nPackage: *\nPin: release a=testing\nPin-Priority: 450\n' > /etc/apt/preferences.d/preferences
+
+RUN apt-get update && \
+  apt-get install --no-install-recommends -yqq ca-certificates curl && \
+  mkdir -p /usr/share/postgresql-common/pgdg
+
+ADD --chmod=644 https://www.postgresql.org/media/keys/ACCC4CF8.asc /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc
+
+RUN echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt trixie-pgdg main" > /etc/apt/sources.list.d/pgdg.list && \
+  apt-get update && \
+  apt-get install --no-install-recommends -yqq \
+  jq \
+  libde265-0/testing \
+  libexif12 \
+  libexpat1 \
+  libgcc-s1 \
+  libglib2.0-0 \
+  libgomp1 \
+  libgsf-1-114 \
+  liblcms2-2 \
+  liblqr-1-0 \
+  libltdl7 \
+  libopenexr-3-1-30 \
+  libopenjp2-7 \
+  librsvg2-2 \
+  libspng0 \
+  mesa-utils \
+  mesa-va-drivers \
+  mesa-vulkan-drivers \
+  tini \
+  wget \
+  zlib1g \
+  ocl-icd-libopencl1 \
+  postgresql-client-14 \
+  postgresql-client-15 \
+  postgresql-client-16 \
+  postgresql-client-17 \
+  postgresql-client-18 \
+  libio-compress-brotli-perl \
+  libwebp7 \
+  libwebpdemux2 \
+  libwebpmux3 \
+  libhwy1t64 \
+  libaom3 && \
+  apt-get install -t testing --no-install-recommends -yqq libmimalloc3 && \
+  apt-get remove -yqq jq wget ca-certificates curl && \
+  apt-get autoremove -yqq && \
+  apt-get clean && \
+  rm -rf /var/lib/apt/lists/*
+
+COPY --from=dev /usr/lib/jellyfin-ffmpeg/ /usr/lib/jellyfin-ffmpeg/
+RUN ln -sf /usr/lib/jellyfin-ffmpeg/ffmpeg /usr/bin/ffmpeg && \
+  ln -sf /usr/lib/jellyfin-ffmpeg/ffprobe /usr/bin/ffprobe
+
+COPY --from=dev /usr/local/lib/ /usr/local/lib/
+COPY --from=dev /build/ /build/
+
+WORKDIR /usr/src/app
+
+ENV LD_LIBRARY_PATH=/usr/lib/jellyfin-ffmpeg/lib:/usr/lib/wsl/lib
+RUN ldconfig /usr/local/lib
+
+ENV NODE_ENV=production \
+  NVIDIA_DRIVER_CAPABILITIES=all \
+  NVIDIA_VISIBLE_DEVICES=all
+
+COPY --from=server /output/server-pruned ./server
+COPY --from=web /usr/src/app/web/build /build/www
+COPY --from=cli /output/cli-pruned ./cli
+COPY --from=plugins /usr/src/app/plugins/dist /build/corePlugin/dist
+COPY --from=plugins /usr/src/app/plugins/manifest.json /build/corePlugin/manifest.json
+RUN ln -s ../../cli/bin/immich server/bin/immich
+COPY LICENSE /licenses/LICENSE.txt
+COPY LICENSE /LICENSE
+
+ENV PATH="${PATH}:/usr/src/app/server/bin"
+
+ARG BUILD_ID
+ARG BUILD_IMAGE
+ARG BUILD_SOURCE_REF
+ARG BUILD_SOURCE_COMMIT
+
+ENV IMMICH_BUILD=${BUILD_ID}
+ENV IMMICH_BUILD_URL=https://github.com/immich-app/immich/actions/runs/${BUILD_ID}
+ENV IMMICH_BUILD_IMAGE=${BUILD_IMAGE}
+ENV IMMICH_BUILD_IMAGE_URL=https://github.com/immich-app/immich/pkgs/container/immich-server
+ENV IMMICH_REPOSITORY=immich-app/immich
+ENV IMMICH_REPOSITORY_URL=https://github.com/immich-app/immich
+ENV IMMICH_SOURCE_REF=${BUILD_SOURCE_REF}
+ENV IMMICH_SOURCE_COMMIT=${BUILD_SOURCE_COMMIT}
+ENV IMMICH_SOURCE_URL=https://github.com/immich-app/immich/commit/${BUILD_SOURCE_COMMIT}
+
+VOLUME /data
+EXPOSE 2283
+ENTRYPOINT ["tini", "--", "/bin/bash", "-c"]
+CMD ["start.sh"]
+
+HEALTHCHECK CMD immich-healthcheck

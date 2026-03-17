@@ -1,0 +1,16 @@
+.git
+upstream/.git
+*
+!.dockerignore
+!.gitmodules
+!Dockerfile.benchmark
+!README.md
+!boringcache-bin
+!libjxl-patches
+!libjxl-patches/**
+!scenarios
+!scenarios/**
+!scripts
+!scripts/**
+!upstream
+!upstream/**

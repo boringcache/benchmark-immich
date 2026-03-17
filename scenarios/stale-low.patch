@@ -1,0 +1,10 @@
+diff --git a/server/src/main.ts b/server/src/main.ts
+index f2491f0..9dd6f19 100644
+--- a/server/src/main.ts
++++ b/server/src/main.ts
+@@ -191,3 +191,5 @@ function main() {
+ }
+ 
+ void main();
++
++// benchmark stale mutation pinned
