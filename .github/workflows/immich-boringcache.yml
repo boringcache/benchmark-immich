@@ -98,8 +98,10 @@ jobs:
           tag_libvips="immich-libvips-8.17.3-${run_suffix}"
           tag_ffmpeg="immich-ffmpeg-7.1.3-1-${run_suffix}"
           tags_csv="${pnpm_tag},${mise_tag},${tag_libheif},${tag_libjxl},${tag_libraw},${tag_imagemagick},${tag_libvips},${tag_ffmpeg},${cache_scope},${docker_registry_tag}"
+          registry_proxy_tags="${cache_scope},${docker_registry_tag}"
           echo "cache_scope=${cache_scope}" >> "$GITHUB_OUTPUT"
           echo "docker_registry_tag=${docker_registry_tag}" >> "$GITHUB_OUTPUT"
+          echo "registry_proxy_tags=${registry_proxy_tags}" >> "$GITHUB_OUTPUT"
           echo "pnpm_tag=${pnpm_tag}" >> "$GITHUB_OUTPUT"
           echo "mise_tag=${mise_tag}" >> "$GITHUB_OUTPUT"
           echo "tag_libheif=${tag_libheif}" >> "$GITHUB_OUTPUT"
@@ -249,7 +251,7 @@ jobs:
           docker-command: setup
           workspace: ${{ env.BENCHMARK_WORKSPACE }}
           cache-tag: ${{ steps.scope.outputs.cache_scope }}
-          registry-tag: ${{ steps.scope.outputs.docker_registry_tag }}
+          registry-tag: ${{ steps.scope.outputs.registry_proxy_tags }}
           proxy-no-git: 'true'
           driver-opts: |
             network=host
@@ -338,8 +340,10 @@ jobs:
           tag_libvips="immich-libvips-8.17.3-${run_suffix}"
           tag_ffmpeg="immich-ffmpeg-7.1.3-1-${run_suffix}"
           tags_csv="${pnpm_tag},${mise_tag},${tag_libheif},${tag_libjxl},${tag_libraw},${tag_imagemagick},${tag_libvips},${tag_ffmpeg},${cache_scope},${docker_registry_tag}"
+          registry_proxy_tags="${cache_scope},${docker_registry_tag}"
           echo "cache_scope=${cache_scope}" >> "$GITHUB_OUTPUT"
           echo "docker_registry_tag=${docker_registry_tag}" >> "$GITHUB_OUTPUT"
+          echo "registry_proxy_tags=${registry_proxy_tags}" >> "$GITHUB_OUTPUT"
           echo "pnpm_tag=${pnpm_tag}" >> "$GITHUB_OUTPUT"
           echo "mise_tag=${mise_tag}" >> "$GITHUB_OUTPUT"
           echo "tag_libheif=${tag_libheif}" >> "$GITHUB_OUTPUT"
@@ -489,7 +493,7 @@ jobs:
           docker-command: setup
           workspace: ${{ env.BENCHMARK_WORKSPACE }}
           cache-tag: ${{ needs.seed-cache.outputs.cache_scope }}
-          registry-tag: ${{ steps.scope.outputs.docker_registry_tag }}
+          registry-tag: ${{ steps.scope.outputs.registry_proxy_tags }}
           proxy-no-git: 'true'
           read-only: true
           driver-opts: |
