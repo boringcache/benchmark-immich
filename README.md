@@ -25,7 +25,7 @@ Pinned upstream source:
 - `warm1`
 - `warm2`
 - `stale-low`: one server source file change
-- `stale-mid`: one `package.json` metadata change
+- `stale-mid`: workspace metadata plus plugins toolchain config change
 - `layer-miss`: `--no-cache` Docker rebuild on the same pinned tree
 
 ## Token Model

@@ -579,7 +579,7 @@ jobs:
           end="$(date +%s)"
           echo "seconds=$((end - start))" >> "$GITHUB_OUTPUT"
 
-      - name: "Run stale-mid build (package.json change, partial warm)"
+      - name: "Run stale-mid build (workspace metadata + toolchain config change, partial warm)"
         id: stale_mid_build
         if: matrix.phase == 'stale-mid'
         env:
@@ -755,7 +755,7 @@ jobs:
             --cache-storage-bytes "${{ steps.cache_size.outputs.bytes }}" \
             --cache-storage-source "boringcache-check" \
             --bytes-uploaded "${{ steps.cache_size.outputs.bytes }}" \
-            --hit-behavior-note "Source tree comes from the pinned upstream submodule ${PROJECT_REPO}@${PROJECT_REF} in this benchmark repo. Cold+seed runs the pinned base tree from empty BC tags and empty Docker layer cache, using --no-cache + cache-to via the BC registry proxy (mode=max) while internal pnpm, mise, and native-library caches restore/save through BoringCache. Warm1/Warm2 reuse the same pinned base tree with cache-from only, internal restore enabled, and internal save disabled. Stale-low applies the committed scenarios/stale-low.patch source-only change to the pinned tree. Stale-mid applies the committed scenarios/stale-mid.patch package.json metadata change. Both stale phases rebuild with cache-from only and internal restore enabled but no internal save. Layer-miss rebuilds the pinned base tree with --no-cache while internal restore stays enabled and internal save stays disabled. All scenario phases run as isolated matrix jobs on fresh runners with buildx pruned before building."
+            --hit-behavior-note "Source tree comes from the pinned upstream submodule ${PROJECT_REPO}@${PROJECT_REF} in this benchmark repo. Cold+seed runs the pinned base tree from empty BC tags and empty Docker layer cache, using --no-cache + cache-to via the BC registry proxy (mode=max) while internal pnpm, mise, and native-library caches restore/save through BoringCache. Warm1/Warm2 reuse the same pinned base tree with cache-from only, internal restore enabled, and internal save disabled. Stale-low applies the committed scenarios/stale-low.patch source-only change to the pinned tree. Stale-mid applies the committed scenarios/stale-mid.patch workspace metadata and plugins toolchain config changes. Both stale phases rebuild with cache-from only and internal restore enabled but no internal save. Layer-miss rebuilds the pinned base tree with --no-cache while internal restore stays enabled and internal save stays disabled. All scenario phases run as isolated matrix jobs on fresh runners with buildx pruned before building."
 
       - name: Upload benchmark artifacts
         uses: actions/upload-artifact@v6

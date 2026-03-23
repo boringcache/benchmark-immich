@@ -1,5 +1,4 @@
 diff --git a/package.json b/package.json
-index b49e12c..c0b7093 100644
 --- a/package.json
 +++ b/package.json
 @@ -6,5 +6,6 @@
@@ -10,3 +9,15 @@ index b49e12c..c0b7093 100644
 +  },
 +  "_benchmarkStale": "pinned"
  }
+diff --git a/plugins/mise.toml b/plugins/mise.toml
+--- a/plugins/mise.toml
++++ b/plugins/mise.toml
+@@ -2,6 +2,8 @@
+ "github:extism/cli" = "1.6.3"
+ "github:webassembly/binaryen" = "version_124"
+ "github:extism/js-pdk" = "1.6.0"
++
++# benchmark stale mutation pinned
+ 
+ [tasks.install]
+ run = "pnpm install --frozen-lockfile"
