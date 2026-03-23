@@ -91,19 +91,23 @@ jobs:
           docker_registry_tag="${BENCHMARK_ID}-docker-layers-${run_suffix}"
           pnpm_tag="immich-pnpm-${run_suffix}"
           mise_tag="immich-mise-${run_suffix}"
+          server_build_tag="immich-server-build-${run_suffix}"
+          cli_build_tag="immich-cli-build-${run_suffix}"
           tag_libheif="immich-libheif-1.20.2-${run_suffix}"
           tag_libjxl="immich-libjxl-0.11.1-${run_suffix}"
           tag_libraw="immich-libraw-0.22.0-${run_suffix}"
           tag_imagemagick="immich-imagemagick-7.1.2-2-${run_suffix}"
           tag_libvips="immich-libvips-8.17.3-${run_suffix}"
           tag_ffmpeg="immich-ffmpeg-7.1.3-1-${run_suffix}"
-          tags_csv="${pnpm_tag},${mise_tag},${tag_libheif},${tag_libjxl},${tag_libraw},${tag_imagemagick},${tag_libvips},${tag_ffmpeg},${cache_scope},${docker_registry_tag}"
+          tags_csv="${pnpm_tag},${mise_tag},${server_build_tag},${cli_build_tag},${tag_libheif},${tag_libjxl},${tag_libraw},${tag_imagemagick},${tag_libvips},${tag_ffmpeg},${cache_scope},${docker_registry_tag}"
           registry_proxy_tags="${cache_scope},${docker_registry_tag}"
           echo "cache_scope=${cache_scope}" >> "$GITHUB_OUTPUT"
           echo "docker_registry_tag=${docker_registry_tag}" >> "$GITHUB_OUTPUT"
           echo "registry_proxy_tags=${registry_proxy_tags}" >> "$GITHUB_OUTPUT"
           echo "pnpm_tag=${pnpm_tag}" >> "$GITHUB_OUTPUT"
           echo "mise_tag=${mise_tag}" >> "$GITHUB_OUTPUT"
+          echo "server_build_tag=${server_build_tag}" >> "$GITHUB_OUTPUT"
+          echo "cli_build_tag=${cli_build_tag}" >> "$GITHUB_OUTPUT"
           echo "tag_libheif=${tag_libheif}" >> "$GITHUB_OUTPUT"
           echo "tag_libjxl=${tag_libjxl}" >> "$GITHUB_OUTPUT"
           echo "tag_libraw=${tag_libraw}" >> "$GITHUB_OUTPUT"
@@ -186,6 +190,8 @@ jobs:
               --build-arg BORINGCACHE_WORKSPACE="$BENCHMARK_WORKSPACE" \
               --build-arg BORINGCACHE_TAG_PNPM="$BORINGCACHE_TAG_PNPM" \
               --build-arg BORINGCACHE_TAG_MISE="$BORINGCACHE_TAG_MISE" \
+              --build-arg BORINGCACHE_TAG_SERVER_BUILD="$BORINGCACHE_TAG_SERVER_BUILD" \
+              --build-arg BORINGCACHE_TAG_CLI_BUILD="$BORINGCACHE_TAG_CLI_BUILD" \
               --build-arg BORINGCACHE_TAG_LIBHEIF="$BORINGCACHE_TAG_LIBHEIF" \
               --build-arg BORINGCACHE_TAG_LIBJXL="$BORINGCACHE_TAG_LIBJXL" \
               --build-arg BORINGCACHE_TAG_LIBRAW="$BORINGCACHE_TAG_LIBRAW" \
@@ -272,6 +278,8 @@ jobs:
           CACHE_SCOPE: ${{ steps.scope.outputs.cache_scope }}
           BORINGCACHE_TAG_PNPM: ${{ steps.scope.outputs.pnpm_tag }}
           BORINGCACHE_TAG_MISE: ${{ steps.scope.outputs.mise_tag }}
+          BORINGCACHE_TAG_SERVER_BUILD: ${{ steps.scope.outputs.server_build_tag }}
+          BORINGCACHE_TAG_CLI_BUILD: ${{ steps.scope.outputs.cli_build_tag }}
           BORINGCACHE_TAG_LIBHEIF: ${{ steps.scope.outputs.tag_libheif }}
           BORINGCACHE_TAG_LIBJXL: ${{ steps.scope.outputs.tag_libjxl }}
           BORINGCACHE_TAG_LIBRAW: ${{ steps.scope.outputs.tag_libraw }}
@@ -333,19 +341,23 @@ jobs:
           docker_registry_tag="${BENCHMARK_ID}-docker-layers-${run_suffix}"
           pnpm_tag="immich-pnpm-${run_suffix}"
           mise_tag="immich-mise-${run_suffix}"
+          server_build_tag="immich-server-build-${run_suffix}"
+          cli_build_tag="immich-cli-build-${run_suffix}"
           tag_libheif="immich-libheif-1.20.2-${run_suffix}"
           tag_libjxl="immich-libjxl-0.11.1-${run_suffix}"
           tag_libraw="immich-libraw-0.22.0-${run_suffix}"
           tag_imagemagick="immich-imagemagick-7.1.2-2-${run_suffix}"
           tag_libvips="immich-libvips-8.17.3-${run_suffix}"
           tag_ffmpeg="immich-ffmpeg-7.1.3-1-${run_suffix}"
-          tags_csv="${pnpm_tag},${mise_tag},${tag_libheif},${tag_libjxl},${tag_libraw},${tag_imagemagick},${tag_libvips},${tag_ffmpeg},${cache_scope},${docker_registry_tag}"
+          tags_csv="${pnpm_tag},${mise_tag},${server_build_tag},${cli_build_tag},${tag_libheif},${tag_libjxl},${tag_libraw},${tag_imagemagick},${tag_libvips},${tag_ffmpeg},${cache_scope},${docker_registry_tag}"
           registry_proxy_tags="${cache_scope},${docker_registry_tag}"
           echo "cache_scope=${cache_scope}" >> "$GITHUB_OUTPUT"
           echo "docker_registry_tag=${docker_registry_tag}" >> "$GITHUB_OUTPUT"
           echo "registry_proxy_tags=${registry_proxy_tags}" >> "$GITHUB_OUTPUT"
           echo "pnpm_tag=${pnpm_tag}" >> "$GITHUB_OUTPUT"
           echo "mise_tag=${mise_tag}" >> "$GITHUB_OUTPUT"
+          echo "server_build_tag=${server_build_tag}" >> "$GITHUB_OUTPUT"
+          echo "cli_build_tag=${cli_build_tag}" >> "$GITHUB_OUTPUT"
           echo "tag_libheif=${tag_libheif}" >> "$GITHUB_OUTPUT"
           echo "tag_libjxl=${tag_libjxl}" >> "$GITHUB_OUTPUT"
           echo "tag_libraw=${tag_libraw}" >> "$GITHUB_OUTPUT"
@@ -428,6 +440,8 @@ jobs:
               --build-arg BORINGCACHE_WORKSPACE="$BENCHMARK_WORKSPACE" \
               --build-arg BORINGCACHE_TAG_PNPM="$BORINGCACHE_TAG_PNPM" \
               --build-arg BORINGCACHE_TAG_MISE="$BORINGCACHE_TAG_MISE" \
+              --build-arg BORINGCACHE_TAG_SERVER_BUILD="$BORINGCACHE_TAG_SERVER_BUILD" \
+              --build-arg BORINGCACHE_TAG_CLI_BUILD="$BORINGCACHE_TAG_CLI_BUILD" \
               --build-arg BORINGCACHE_TAG_LIBHEIF="$BORINGCACHE_TAG_LIBHEIF" \
               --build-arg BORINGCACHE_TAG_LIBJXL="$BORINGCACHE_TAG_LIBJXL" \
               --build-arg BORINGCACHE_TAG_LIBRAW="$BORINGCACHE_TAG_LIBRAW" \
@@ -515,6 +529,8 @@ jobs:
           CACHE_SCOPE: ${{ needs.seed-cache.outputs.cache_scope }}
           BORINGCACHE_TAG_PNPM: ${{ steps.scope.outputs.pnpm_tag }}
           BORINGCACHE_TAG_MISE: ${{ steps.scope.outputs.mise_tag }}
+          BORINGCACHE_TAG_SERVER_BUILD: ${{ steps.scope.outputs.server_build_tag }}
+          BORINGCACHE_TAG_CLI_BUILD: ${{ steps.scope.outputs.cli_build_tag }}
           BORINGCACHE_TAG_LIBHEIF: ${{ steps.scope.outputs.tag_libheif }}
           BORINGCACHE_TAG_LIBJXL: ${{ steps.scope.outputs.tag_libjxl }}
           BORINGCACHE_TAG_LIBRAW: ${{ steps.scope.outputs.tag_libraw }}
@@ -540,6 +556,8 @@ jobs:
           CACHE_SCOPE: ${{ needs.seed-cache.outputs.cache_scope }}
           BORINGCACHE_TAG_PNPM: ${{ steps.scope.outputs.pnpm_tag }}
           BORINGCACHE_TAG_MISE: ${{ steps.scope.outputs.mise_tag }}
+          BORINGCACHE_TAG_SERVER_BUILD: ${{ steps.scope.outputs.server_build_tag }}
+          BORINGCACHE_TAG_CLI_BUILD: ${{ steps.scope.outputs.cli_build_tag }}
           BORINGCACHE_TAG_LIBHEIF: ${{ steps.scope.outputs.tag_libheif }}
           BORINGCACHE_TAG_LIBJXL: ${{ steps.scope.outputs.tag_libjxl }}
           BORINGCACHE_TAG_LIBRAW: ${{ steps.scope.outputs.tag_libraw }}
@@ -565,6 +583,8 @@ jobs:
           CACHE_SCOPE: ${{ needs.seed-cache.outputs.cache_scope }}
           BORINGCACHE_TAG_PNPM: ${{ steps.scope.outputs.pnpm_tag }}
           BORINGCACHE_TAG_MISE: ${{ steps.scope.outputs.mise_tag }}
+          BORINGCACHE_TAG_SERVER_BUILD: ${{ steps.scope.outputs.server_build_tag }}
+          BORINGCACHE_TAG_CLI_BUILD: ${{ steps.scope.outputs.cli_build_tag }}
           BORINGCACHE_TAG_LIBHEIF: ${{ steps.scope.outputs.tag_libheif }}
           BORINGCACHE_TAG_LIBJXL: ${{ steps.scope.outputs.tag_libjxl }}
           BORINGCACHE_TAG_LIBRAW: ${{ steps.scope.outputs.tag_libraw }}
@@ -590,6 +610,8 @@ jobs:
           CACHE_SCOPE: ${{ needs.seed-cache.outputs.cache_scope }}
           BORINGCACHE_TAG_PNPM: ${{ steps.scope.outputs.pnpm_tag }}
           BORINGCACHE_TAG_MISE: ${{ steps.scope.outputs.mise_tag }}
+          BORINGCACHE_TAG_SERVER_BUILD: ${{ steps.scope.outputs.server_build_tag }}
+          BORINGCACHE_TAG_CLI_BUILD: ${{ steps.scope.outputs.cli_build_tag }}
           BORINGCACHE_TAG_LIBHEIF: ${{ steps.scope.outputs.tag_libheif }}
           BORINGCACHE_TAG_LIBJXL: ${{ steps.scope.outputs.tag_libjxl }}
           BORINGCACHE_TAG_LIBRAW: ${{ steps.scope.outputs.tag_libraw }}
@@ -615,6 +637,8 @@ jobs:
           CACHE_SCOPE: ${{ needs.seed-cache.outputs.cache_scope }}
           BORINGCACHE_TAG_PNPM: ${{ steps.scope.outputs.pnpm_tag }}
           BORINGCACHE_TAG_MISE: ${{ steps.scope.outputs.mise_tag }}
+          BORINGCACHE_TAG_SERVER_BUILD: ${{ steps.scope.outputs.server_build_tag }}
+          BORINGCACHE_TAG_CLI_BUILD: ${{ steps.scope.outputs.cli_build_tag }}
           BORINGCACHE_TAG_LIBHEIF: ${{ steps.scope.outputs.tag_libheif }}
           BORINGCACHE_TAG_LIBJXL: ${{ steps.scope.outputs.tag_libjxl }}
           BORINGCACHE_TAG_LIBRAW: ${{ steps.scope.outputs.tag_libraw }}
@@ -755,7 +779,7 @@ jobs:
             --cache-storage-bytes "${{ steps.cache_size.outputs.bytes }}" \
             --cache-storage-source "boringcache-check" \
             --bytes-uploaded "${{ steps.cache_size.outputs.bytes }}" \
-            --hit-behavior-note "Source tree comes from the pinned upstream submodule ${PROJECT_REPO}@${PROJECT_REF} in this benchmark repo. Cold+seed runs the pinned base tree from empty BC tags and empty Docker layer cache, using --no-cache + cache-to via the BC registry proxy (mode=max) while internal pnpm, mise, and native-library caches restore/save through BoringCache. Warm1/Warm2 reuse the same pinned base tree with cache-from only, internal restore enabled, and internal save disabled. Stale-low applies the committed scenarios/stale-low.patch source-only change to the pinned tree. Stale-mid applies the committed scenarios/stale-mid.patch workspace metadata and plugins toolchain config changes. Both stale phases rebuild with cache-from only and internal restore enabled but no internal save. Layer-miss rebuilds the pinned base tree with --no-cache while internal restore stays enabled and internal save stays disabled. All scenario phases run as isolated matrix jobs on fresh runners with buildx pruned before building."
+            --hit-behavior-note "Source tree comes from the pinned upstream submodule ${PROJECT_REPO}@${PROJECT_REF} in this benchmark repo. Cold+seed runs the pinned base tree from empty BC tags and empty Docker layer cache, using --no-cache + cache-to via the BC registry proxy (mode=max) while internal pnpm, mise, server/cli incremental build-output, and native-library caches restore/save through BoringCache. Warm1/Warm2 reuse the same pinned base tree with cache-from only, internal restore enabled, and internal save disabled. Stale-low applies the committed scenarios/stale-low.patch source-only change to the pinned tree. Stale-mid applies the committed scenarios/stale-mid.patch workspace metadata and plugins toolchain config changes. Both stale phases rebuild with cache-from only and internal restore enabled but no internal save. Layer-miss rebuilds the pinned base tree with --no-cache while internal restore stays enabled and internal save stays disabled. All scenario phases run as isolated matrix jobs on fresh runners with buildx pruned before building."
 
       - name: Upload benchmark artifacts
         uses: actions/upload-artifact@v6

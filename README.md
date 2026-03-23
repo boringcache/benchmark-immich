@@ -28,6 +28,8 @@ Pinned upstream source:
 - `stale-mid`: workspace metadata plus plugins toolchain config change
 - `layer-miss`: `--no-cache` Docker rebuild on the same pinned tree
 
+On the BoringCache side, these runs restore/save internal caches for pnpm, mise, native libraries, and server/cli incremental build outputs so source-level rebuild behavior can be measured separately from Docker layer reuse.
+
 ## Token Model
 
 This repo uses split BoringCache tokens as the standard CI shape:
