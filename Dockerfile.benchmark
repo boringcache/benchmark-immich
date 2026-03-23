@@ -488,7 +488,7 @@ RUN --mount=type=secret,id=boringcache_token \
       if [ -d /buildcache/server-build/dist ]; then \
         cp -a /buildcache/server-build/dist ./server/; \
       fi; \
-      find /buildcache/server-build -maxdepth 1 -name '*.tsbuildinfo' -exec cp -a {} ./server/ \; && \
+      find /buildcache/server-build -maxdepth 1 -name '*.tsbuildinfo' -exec cp -a {} ./server/ \; ; \
     fi && \
     pnpm config set store-dir "$PNPM_STORE_DIR" && \
     pnpm config set fetch-retries 6 && \
@@ -578,7 +578,7 @@ RUN --mount=type=secret,id=boringcache_token \
       if [ -d /buildcache/cli-build/dist ]; then \
         cp -a /buildcache/cli-build/dist ./cli/; \
       fi; \
-      find /buildcache/cli-build -maxdepth 1 -name '*.tsbuildinfo' -exec cp -a {} ./cli/ \; && \
+      find /buildcache/cli-build -maxdepth 1 -name '*.tsbuildinfo' -exec cp -a {} ./cli/ \; ; \
     fi && \
     pnpm config set store-dir "$PNPM_STORE_DIR" && \
     pnpm config set fetch-retries 6 && \
