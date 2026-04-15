@@ -7,7 +7,7 @@ This repo exists separately from the central benchmarks publisher so Immich can 
 - a pinned upstream source commit
 - isolated GitHub Actions cache usage
 - one shared BoringCache workspace name: `boringcache/benchmarks`
-- independent benchmark runs triggered by upstream sync commits and the nightly schedule
+- independent benchmark runs triggered by upstream sync commits and manual dispatches
 
 ## Source Model
 
@@ -22,6 +22,7 @@ Pinned upstream source:
 
 - `cold`
 - `warm1`
+- `layer_miss`
 
 On the BoringCache side, these runs restore/save internal caches for pnpm, mise, native libraries, and server/cli incremental build outputs so source-level rebuild behavior can be measured separately from Docker layer reuse.
 
