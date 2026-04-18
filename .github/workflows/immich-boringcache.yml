@@ -125,7 +125,17 @@ jobs:
       - name: Prepare benchmark build inputs
         id: scope
         run: |
-          cp "$(which boringcache)" ./boringcache-bin
+          if [[ "${{ github.event_name == 'workflow_dispatch' && inputs.cli_ref != '' && '1' || '0' }}" == "1" ]]; then
+            # Keep cli_ref debug runs out of Docker RUN cache keys. The built CLI
+            # still drives the outer registry proxy; Dockerfile-internal calls are disabled.
+            cat > ./boringcache-bin <<'SH'
+          #!/usr/bin/env sh
+          exit 0
+          SH
+          else
+            cp "$(command -v boringcache)" ./boringcache-bin
+          fi
+          chmod +x ./boringcache-bin
 
           ref_slug="$(printf '%s' "${GITHUB_REF_NAME}" | tr -c 'A-Za-z0-9._-' '-')"
           ref_slug="${ref_slug#-}"
@@ -220,6 +230,11 @@ jobs:
           while true; do
             cache_args=()
             internal_restore_enabled="1"
+            internal_save_enabled="1"
+            if [[ "${{ github.event_name == 'workflow_dispatch' && inputs.cli_ref != '' && '1' || '0' }}" == "1" ]]; then
+              internal_restore_enabled="0"
+              internal_save_enabled="0"
+            fi
             if [[ "$mode" == "full" ]]; then
               [[ -n "${CACHE_FROM:-}" ]] && cache_args+=(--cache-from "$CACHE_FROM")
               [[ -n "${CACHE_TO:-}" ]] && cache_args+=(--cache-to "$CACHE_TO")
@@ -277,6 +292,7 @@ jobs:
               --build-arg BORINGCACHE_TAG_LIBVIPS="$BORINGCACHE_TAG_LIBVIPS" \
               --build-arg BORINGCACHE_TAG_FFMPEG="$BORINGCACHE_TAG_FFMPEG" \
               --build-arg BORINGCACHE_INTERNAL_RESTORE_ENABLED="$internal_restore_enabled" \
+              --build-arg BORINGCACHE_INTERNAL_SAVE_ENABLED="$internal_save_enabled" \
               . 2>&1 | tee "$build_log"
             status=${PIPESTATUS[0]}
             set -e
@@ -427,7 +443,17 @@ jobs:
       - name: Prepare benchmark build inputs
         id: scope
         run: |
-          cp "$(which boringcache)" ./boringcache-bin
+          if [[ "${{ github.event_name == 'workflow_dispatch' && inputs.cli_ref != '' && '1' || '0' }}" == "1" ]]; then
+            # Keep cli_ref debug runs out of Docker RUN cache keys. The built CLI
+            # still drives the outer registry proxy; Dockerfile-internal calls are disabled.
+            cat > ./boringcache-bin <<'SH'
+          #!/usr/bin/env sh
+          exit 0
+          SH
+          else
+            cp "$(command -v boringcache)" ./boringcache-bin
+          fi
+          chmod +x ./boringcache-bin
 
           ref_slug="$(printf '%s' "${GITHUB_REF_NAME}" | tr -c 'A-Za-z0-9._-' '-')"
           ref_slug="${ref_slug#-}"
@@ -522,6 +548,11 @@ jobs:
           while true; do
             cache_args=()
             internal_restore_enabled="1"
+            internal_save_enabled="1"
+            if [[ "${{ github.event_name == 'workflow_dispatch' && inputs.cli_ref != '' && '1' || '0' }}" == "1" ]]; then
+              internal_restore_enabled="0"
+              internal_save_enabled="0"
+            fi
             if [[ "$mode" == "full" ]]; then
               [[ -n "${CACHE_FROM:-}" ]] && cache_args+=(--cache-from "$CACHE_FROM")
               [[ -n "${CACHE_TO:-}" ]] && cache_args+=(--cache-to "$CACHE_TO")
@@ -579,6 +610,7 @@ jobs:
               --build-arg BORINGCACHE_TAG_LIBVIPS="$BORINGCACHE_TAG_LIBVIPS" \
               --build-arg BORINGCACHE_TAG_FFMPEG="$BORINGCACHE_TAG_FFMPEG" \
               --build-arg BORINGCACHE_INTERNAL_RESTORE_ENABLED="$internal_restore_enabled" \
+              --build-arg BORINGCACHE_INTERNAL_SAVE_ENABLED="$internal_save_enabled" \
               . 2>&1 | tee "$build_log"
             status=${PIPESTATUS[0]}
             set -e
