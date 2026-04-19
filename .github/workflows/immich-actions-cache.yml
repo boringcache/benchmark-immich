@@ -252,6 +252,8 @@ jobs:
       fail-fast: false
       matrix:
         phase: [warm1, layer_miss]
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Checkout benchmark repo
         uses: actions/checkout@v6
