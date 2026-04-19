@@ -635,7 +635,7 @@ RUN --mount=type=secret,id=boringcache_token \
     save_token="$(cat /run/secrets/boringcache_save_token 2>/dev/null || true)" && \
     export BORINGCACHE_SAVE_TOKEN="${save_token}" && \
     github_token="$(cat /run/secrets/github_token 2>/dev/null || true)" && \
-    if [ -n "$github_token" ]; then export GITHUB_TOKEN="$github_token" GH_TOKEN="$github_token" MISE_GITHUB_TOKEN="$github_token"; fi && \
+    if [ -n "$github_token" ]; then export MISE_GITHUB_TOKEN="$github_token" GITHUB_API_TOKEN="$github_token" GITHUB_TOKEN="$github_token" GH_TOKEN="$github_token"; fi && \
     if [ "$BORINGCACHE_INTERNAL_RESTORE_ENABLED" = "1" ]; then \
       boringcache restore --no-git "$BORINGCACHE_WORKSPACE" "${BORINGCACHE_TAG_MISE}:/buildcache/mise" || true; \
     fi && \
