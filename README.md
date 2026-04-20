@@ -12,7 +12,7 @@ This repo exists separately from the central benchmarks publisher so Immich can 
 ## Source Model
 
 - upstream app source lives in the pinned `upstream/` submodule
-- `Dockerfile.benchmark` is benchmark-owned and committed here
+- workflows build the upstream Dockerfile with `upstream/` as the Docker context
 
 Pinned upstream source:
 
@@ -24,7 +24,7 @@ Pinned upstream source:
 - `warm1`
 - `layer_miss`
 
-On the BoringCache side, these runs restore/save internal caches for pnpm, mise, native libraries, and server/cli incremental build outputs so source-level rebuild behavior can be measured separately from Docker layer reuse.
+BoringCache uses the outer BuildKit registry/OCI cache path only. Upstream Dockerfile cache mounts stay native to BuildKit.
 
 ## Token Model
 
