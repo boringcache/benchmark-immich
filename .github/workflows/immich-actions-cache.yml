@@ -51,7 +51,7 @@ jobs:
       dockerfile_path: upstream/server/Dockerfile
       docker_context: upstream
       image_tag: immich-server-benchmark:latest
-      benchmark_workspace: boringcache/benchmarks
+      benchmark_workspace: ${{ github.repository }}
     secrets: inherit
     permissions:
       contents: read
