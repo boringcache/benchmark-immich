@@ -13,20 +13,6 @@ on:
         options:
           - fresh
           - rolling
-  schedule:
-    - cron: "0 3 * * 2"
-  pull_request:
-    paths:
-      - ".gitmodules"
-      - ".github/workflows/immich-boringcache.yml"
-      - ".github/workflows/immich-actions-cache.yml"
-      - ".github/workflows/reusable-docker-buildkit-benchmark.yml"
-      - "README.md"
-      - "scenarios/**"
-      - "scripts/**"
-      - "upstream"
-      - "libjxl-patches/**"
-
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref_name }}-${{ github.event_name == 'workflow_dispatch' && inputs.cache_lane || 'fresh' }}
   cancel-in-progress: false
