@@ -79,8 +79,8 @@ jobs:
           image_tag: immich-server-benchmark:latest
           cli_platform: linux-amd64
           benchmark_workspace: ${{ github.repository }}
-  boringcache-auto:
-    name: BC auto
+  boringcache-native:
+    name: BC native
     runs-on: ubuntu-latest
     timeout-minutes: 180
     env:
@@ -95,12 +95,12 @@ jobs:
           fetch-depth: 1
           submodules: false
 
-      - name: BC auto
+      - name: BC native
         uses: ./.github/actions/docker-rolling-benchmark
         with:
           strategy: boringcache
-          buildkit_backend: auto
-          benchmark_id: immich-auto
+          buildkit_backend: native
+          benchmark_id: immich-native
           project_repo: immich-app/immich
           dockerfile_path: upstream/server/Dockerfile
           docker_context: upstream
