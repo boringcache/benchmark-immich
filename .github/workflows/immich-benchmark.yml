@@ -116,6 +116,10 @@ jobs:
           image_tag: immich-server-benchmark:latest
           cli_platform: linux-amd64
           benchmark_workspace: ${{ github.repository }}
+
+  # No Docker +toolcache lanes here yet: the Immich image uses pnpm/mise cache
+  # mounts inside Docker, not a stable supported turbo/nx/sccache secret
+  # contract. Keep the Docker graph unchanged until that adapter exists.
   boringcache-native:
     name: BC Native
     runs-on: ubuntu-latest
