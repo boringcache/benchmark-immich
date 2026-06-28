@@ -445,6 +445,20 @@ jobs:
         if: inputs.cache_lane != 'rolling'
         run: ./scripts/prepare-source.sh warm1
 
+      - name: Install warm Docker build artifact dependencies
+        if: inputs.cache_lane != 'rolling' && inputs.prepare_install_command != ''
+        run: |
+          set -euo pipefail
+          cd upstream
+          eval "$PREPARE_INSTALL_COMMAND"
+
+      - name: Prepare warm Docker build artifacts
+        if: inputs.cache_lane != 'rolling' && inputs.prepare_command != ''
+        run: |
+          set -euo pipefail
+          cd upstream
+          eval "$PREPARE_COMMAND"
+
       - name: Start warm timing
         if: inputs.cache_lane != 'rolling'
         id: scenario_timing_start
