@@ -18,6 +18,11 @@ on:
         required: false
         type: string
         default: mirror.gcr.io/moby/buildkit:buildx-stable-1
+      cache_export_type:
+        description: "Optional override for the BuildKit cache-to type. Used by experimental BuildKit lanes such as type=boringcache."
+        required: false
+        type: string
+        default: ""
       benchmark_id:
         required: true
         type: string
@@ -52,6 +57,7 @@ on:
 permissions:
   contents: read
   actions: write
+  packages: read
 
 env:
   PROJECT_REPO: ${{ inputs.project_repo }}
@@ -59,6 +65,7 @@ env:
   BENCHMARK_WORKSPACE: ${{ inputs.benchmark_workspace || github.repository }}
   CACHE_LANE: ${{ inputs.cache_lane }}
   BUILDKIT_BACKEND: ${{ inputs.buildkit_backend }}
+  BORINGCACHE_CACHE_EXPORT_TYPE: ${{ inputs.cache_export_type }}
   BORINGCACHE_MANAGED_BUILDKIT_IMAGE: ${{ inputs.buildkit_image }}
   BUILDKIT_IMAGE: ${{ inputs.buildkit_image }}
 
@@ -103,6 +110,14 @@ jobs:
             echo "Missing BORINGCACHE_SAVE_TOKEN secret" >&2
             exit 1
           fi
+
+      - name: Log in to private GHCR images
+        if: startsWith(inputs.buildkit_image, 'ghcr.io/')
+        uses: docker/login-action@v4.2.0
+        with:
+          registry: ghcr.io
+          username: ${{ vars.BORINGCACHE_GHCR_READ_USER || github.actor }}
+          password: ${{ secrets.BORINGCACHE_GHCR_READ_TOKEN || github.token }}
 
       - name: Install BoringCache CLI with boringcache/one
         if: inputs.strategy == 'boringcache'

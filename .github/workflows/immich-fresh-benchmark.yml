@@ -1,0 +1,87 @@
+name: "Immich Fresh Docker Benchmark"
+run-name: >-
+  ${{ format('Benchmark Fresh | {0}', github.event_name == 'workflow_dispatch' && format('Manual dispatch ({0})', github.ref_name) || github.ref_name) }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      prewarm_buildkit_image:
+        description: "Optional experimental BuildKit image. When set, the fresh run adds a BC BuildKit backend lane."
+        required: false
+        type: string
+        default: ""
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref_name }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: write
+  packages: read
+
+jobs:
+  github-actions-cache:
+    name: GHA
+    uses: ./.github/workflows/reusable-docker-buildkit-benchmark.yml
+    with:
+      strategy: actions-cache
+      cache_lane: fresh
+      benchmark_id: immich
+      project_repo: immich-app/immich
+      dockerfile_path: upstream/server/Dockerfile
+      docker_context: upstream
+      image_tag: immich-server-benchmark:latest
+      benchmark_workspace: ${{ github.repository }}
+    secrets: inherit
+
+  boringcache-oci:
+    name: BC OCI
+    uses: ./.github/workflows/reusable-docker-buildkit-benchmark.yml
+    with:
+      strategy: boringcache
+      cache_lane: fresh
+      buildkit_backend: registry
+      benchmark_id: immich
+      project_repo: immich-app/immich
+      dockerfile_path: upstream/server/Dockerfile
+      docker_context: upstream
+      image_tag: immich-server-benchmark:latest
+      cli_platform: linux-amd64
+      benchmark_workspace: ${{ github.repository }}
+    secrets: inherit
+
+  boringcache-native:
+    name: BC Native
+    uses: ./.github/workflows/reusable-docker-buildkit-benchmark.yml
+    with:
+      strategy: boringcache
+      cache_lane: fresh
+      buildkit_backend: native
+      benchmark_id: immich-native
+      project_repo: immich-app/immich
+      dockerfile_path: upstream/server/Dockerfile
+      docker_context: upstream
+      image_tag: immich-server-benchmark:latest
+      cli_platform: linux-amd64
+      benchmark_workspace: ${{ github.repository }}
+    secrets: inherit
+
+  boringcache-buildkit-backend:
+    name: BC BuildKit Backend
+    if: ${{ inputs.prewarm_buildkit_image != '' || vars.IMMICH_PREWARM_BUILDKIT_IMAGE != '' }}
+    uses: ./.github/workflows/reusable-docker-buildkit-benchmark.yml
+    with:
+      strategy: boringcache
+      cache_lane: fresh
+      buildkit_backend: registry
+      benchmark_id: immich-bc-buildkit
+      project_repo: immich-app/immich
+      dockerfile_path: upstream/server/Dockerfile
+      docker_context: upstream
+      image_tag: immich-server-benchmark:latest
+      cli_platform: linux-amd64
+      buildkit_image: ${{ inputs.prewarm_buildkit_image || vars.IMMICH_PREWARM_BUILDKIT_IMAGE }}
+      cache_export_type: boringcache
+      benchmark_workspace: ${{ github.repository }}
+    secrets: inherit
