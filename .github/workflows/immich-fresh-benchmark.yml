@@ -82,6 +82,6 @@ jobs:
       image_tag: immich-server-benchmark:latest
       cli_platform: linux-amd64
       buildkit_image: ${{ inputs.prewarm_buildkit_image || vars.IMMICH_PREWARM_BUILDKIT_IMAGE }}
-      cache_export_type: boringcache
+      buildkit_cache_backend: boringcache
       benchmark_workspace: ${{ github.repository }}
     secrets: inherit
