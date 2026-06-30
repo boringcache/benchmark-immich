@@ -182,4 +182,4 @@ jobs:
           buildkit_image: ${{ inputs.prewarm_buildkit_image || vars.IMMICH_PREWARM_BUILDKIT_IMAGE }}
           benchmark_workspace: ${{ github.repository }}
           buildkit_cache_backend: boringcache
-          oci_hydration: bodies-before-ready
+          oci_hydration: metadata-only
