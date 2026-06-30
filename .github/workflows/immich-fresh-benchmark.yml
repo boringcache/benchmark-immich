@@ -83,5 +83,6 @@ jobs:
       cli_platform: linux-amd64
       buildkit_image: ${{ inputs.prewarm_buildkit_image || vars.IMMICH_PREWARM_BUILDKIT_IMAGE }}
       buildkit_cache_backend: boringcache
+      oci_hydration: bodies-before-ready
       benchmark_workspace: ${{ github.repository }}
     secrets: inherit
