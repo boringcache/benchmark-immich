@@ -51,22 +51,6 @@ jobs:
       benchmark_workspace: ${{ github.repository }}
     secrets: inherit
 
-  boringcache-native:
-    name: BC Native
-    uses: ./.github/workflows/reusable-docker-buildkit-benchmark.yml
-    with:
-      strategy: boringcache
-      cache_lane: fresh
-      buildkit_backend: native
-      benchmark_id: immich-native
-      project_repo: immich-app/immich
-      dockerfile_path: upstream/server/Dockerfile
-      docker_context: upstream
-      image_tag: immich-server-benchmark:latest
-      cli_platform: linux-amd64
-      benchmark_workspace: ${{ github.repository }}
-    secrets: inherit
-
   boringcache-buildkit-backend:
     name: BC BuildKit Backend
     if: ${{ inputs.prewarm_buildkit_image != '' || vars.IMMICH_PREWARM_BUILDKIT_IMAGE != '' }}
