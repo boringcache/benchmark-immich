@@ -19,6 +19,7 @@ case "$backend" in
 esac
 buildkit_cache_backend="${BORINGCACHE_BUILDKIT_CACHE_BACKEND:-${BORINGCACHE_CACHE_EXPORT_TYPE:-}}"
 cache_export_type="$buildkit_cache_backend"
+docker_tool_cache="${BORINGCACHE_DOCKER_TOOL_CACHE:-}"
 effective_cache_to=""
 cache_args=()
 cache_import_ready="${BORINGCACHE_CACHE_IMPORT_READY:-true}"
@@ -79,6 +80,17 @@ flush_action_proxy() {
 }
 cleanup() { :; }
 trap cleanup EXIT
+
+use_wrapped_boringcache_build() {
+  if [[ "$buildkit_cache_backend" == "boringcache" ]]; then
+    [[ -n "$docker_tool_cache" ]] && return 0
+    [[ -z "${CACHE_TO:-}" ]] && return 0
+    return 1
+  fi
+  [[ -n "$docker_tool_cache" ]] && return 0
+  [[ -z "${CACHE_FROM:-}" && -z "${CACHE_TO:-}" ]] && return 0
+  return 1
+}
 
 find_step_id() {
   local pattern="$1"
@@ -459,7 +471,7 @@ while true; do
     exit 1
   fi
 
-  if [[ "$buildkit_cache_backend" == "boringcache" ]]; then
+  if use_wrapped_boringcache_build; then
     run_wrapped_boringcache_build
   else
     require_readable_cache_import
