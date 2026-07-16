@@ -73,7 +73,7 @@ jobs:
           cache-tag: immich-server-buildkit-state-rolling-main-4c
           working-directory: .
           context: upstream
-          dockerfile: upstream/server/Dockerfile
+          dockerfile: server/Dockerfile
           image: immich-server-state-benchmark
           tags: latest
           platforms: linux/amd64
