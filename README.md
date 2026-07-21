@@ -27,7 +27,7 @@ Fresh lane runs a no-prior-cache cold build plus one warm rerun on the same pinn
 
 BoringCache compares the explicit registry/OCI cache path and the managed BuildKit backend path. It does not call BoringCache inside Dockerfile `RUN` steps, and upstream Dockerfile cache mounts stay native to BuildKit.
 
-Scheduled, PR, and rolling-dispatch runs use [`.github/workflows/immich-benchmark.yml`](.github/workflows/immich-benchmark.yml), which runs GitHub Actions Cache, ECR, BoringCache OCI, and the managed BoringCache BuildKit backend side by side. Docker tool-cache lanes are intentionally absent until Immich has a static supported Turbo/Nx/sccache contract inside the measured Dockerfile.
+Scheduled, PR, and rolling-dispatch runs use [`.github/workflows/immich-benchmark.yml`](.github/workflows/immich-benchmark.yml), which runs GitHub Actions Cache, BoringCache OCI, and the managed BoringCache BuildKit backend side by side. ECR is retired; historical ECR runs remain available as evidence. Docker tool-cache lanes are intentionally absent until Immich has a static supported Turbo/Nx/sccache contract inside the measured Dockerfile.
 
 ## Token Model
 

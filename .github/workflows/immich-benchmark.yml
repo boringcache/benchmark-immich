@@ -69,37 +69,6 @@ jobs:
           benchmark_workspace: ${{ github.repository }}
           free_disk_space: true
 
-  ecr-cache:
-    name: ECR
-    if: ${{ github.event_name != 'pull_request' }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 180
-    permissions:
-      contents: read
-      id-token: write
-    steps:
-      - name: Checkout benchmark repo
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 1
-          submodules: false
-
-      - name: ECR
-        uses: ./.github/actions/docker-rolling-benchmark
-        with:
-          strategy: ecr-cache
-          benchmark_id: immich${{ inputs.benchmark_id_suffix }}
-          project_repo: immich-app/immich
-          dockerfile_path: upstream/server/Dockerfile
-          docker_context: upstream
-          image_tag: immich-server-benchmark:latest
-          benchmark_workspace: ${{ github.repository }}
-          free_disk_space: true
-          ecr_region: ${{ vars.DOCKER_BENCHMARK_ECR_REGION || 'us-east-1' }}
-          ecr_role_arn: ${{ vars.DOCKER_BENCHMARK_ECR_ROLE_ARN }}
-          ecr_registry: ${{ vars.DOCKER_BENCHMARK_ECR_REGISTRY }}
-          ecr_repository: ${{ vars.DOCKER_BENCHMARK_ECR_REPOSITORY }}
-
   boringcache-oci:
     name: BC OCI
     runs-on: ubuntu-latest
