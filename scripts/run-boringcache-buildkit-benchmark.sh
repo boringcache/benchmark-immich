@@ -83,9 +83,7 @@ trap cleanup EXIT
 
 use_wrapped_boringcache_build() {
   if [[ "$buildkit_cache_backend" == "boringcache" ]]; then
-    [[ -n "$docker_tool_cache" ]] && return 0
-    [[ -z "${CACHE_TO:-}" ]] && return 0
-    return 1
+    return 0
   fi
   [[ -n "$docker_tool_cache" ]] && return 0
   [[ -z "${CACHE_FROM:-}" && -z "${CACHE_TO:-}" ]] && return 0
@@ -537,6 +535,9 @@ while true; do
   echo "=== End proxy log ==="
   write_build_metrics
   write_build_diagnostics
+  if [[ "$buildkit_cache_backend" == "boringcache" ]]; then
+    "$(dirname "${BASH_SOURCE[0]}")/assert-boringcache-docker-product-run.sh" "${BORINGCACHE_OBSERVABILITY_JSONL_PATH:-}"
+  fi
   break
   fi
 
