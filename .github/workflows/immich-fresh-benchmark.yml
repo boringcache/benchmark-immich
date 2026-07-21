@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       prewarm_buildkit_image:
-        description: "Optional experimental BuildKit image. When set, the fresh run adds a BC BuildKit backend lane."
+        description: "Optional managed BuildKit image override. Defaults to the stable managed channel."
         required: false
         type: string
         default: ""
@@ -53,7 +53,6 @@ jobs:
 
   boringcache-buildkit-backend:
     name: BC BuildKit Backend
-    if: ${{ inputs.prewarm_buildkit_image != '' || vars.IMMICH_PREWARM_BUILDKIT_IMAGE != '' }}
     uses: ./.github/workflows/reusable-docker-buildkit-benchmark.yml
     with:
       strategy: boringcache
@@ -65,7 +64,7 @@ jobs:
       docker_context: upstream
       image_tag: immich-server-benchmark:latest
       cli_platform: linux-amd64
-      buildkit_image: ${{ inputs.prewarm_buildkit_image || vars.IMMICH_PREWARM_BUILDKIT_IMAGE }}
+      buildkit_image: ${{ inputs.prewarm_buildkit_image || vars.IMMICH_PREWARM_BUILDKIT_IMAGE || 'ghcr.io/boringcache/buildkit:v0.30.0-bc' }}
       buildkit_cache_backend: boringcache
       oci_hydration: metadata-only
       benchmark_workspace: ${{ github.repository }}
