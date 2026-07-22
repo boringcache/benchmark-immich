@@ -25,9 +25,9 @@ Pinned upstream source:
 
 Fresh lane runs a no-prior-cache cold build plus one warm rerun on the same pinned source tree. Rolling lane records the upstream commit build as-is after each upstream sync against the prior rolling cache and skips `warm1`.
 
-BoringCache compares the explicit registry/OCI cache path and the managed BuildKit backend path. It does not call BoringCache inside Dockerfile `RUN` steps, and upstream Dockerfile cache mounts stay native to BuildKit.
+BoringCache uses its managed BuildKit backend as the single product lane and compares it with GitHub Actions Cache. It does not call BoringCache inside Dockerfile `RUN` steps, and upstream Dockerfile cache mounts stay native to BuildKit.
 
-The weekly schedule runs a fresh comparison, upstream sync commits run the rolling comparison, and manual dispatches can choose either lane in [`.github/workflows/immich-benchmark.yml`](.github/workflows/immich-benchmark.yml). The workflow compares GitHub Actions Cache, BoringCache OCI, and the managed BoringCache BuildKit backend. [`.github/workflows/canary-dispatch.yml`](.github/workflows/canary-dispatch.yml) runs an isolated fresh comparison against a selected canary CLI and BuildKit image. Docker tool-cache lanes are intentionally absent until Immich has a static supported Turbo/Nx/sccache contract inside the measured Dockerfile.
+Scheduled, PR, and rolling-dispatch runs use [`.github/workflows/immich-benchmark.yml`](.github/workflows/immich-benchmark.yml), which runs GitHub Actions Cache and BoringCache managed BuildKit side by side. Docker tool-cache lanes are intentionally absent until Immich has a static supported Turbo/Nx/sccache contract inside the measured Dockerfile.
 
 ## Token Model
 
