@@ -42,8 +42,8 @@
 #     are emitted here. New fields are nullable and never required
 #     by the aggregator. Build-only/setup splits and Docker rolling
 #     commit-build fields are emitted with nullable warm fields.
-#   - GitHub run context is emitted uniformly for every lane so native,
-#     OCI, ECR, and Actions Cache artifacts can be compared by run id,
+#   - GitHub run context is emitted uniformly for every lane so BoringCache
+#     and GitHub Actions Cache artifacts can be compared by run id,
 #     run number, and attempt without guessing from artifact names.
 #
 set -euo pipefail
