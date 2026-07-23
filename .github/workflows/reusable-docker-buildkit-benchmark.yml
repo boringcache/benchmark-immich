@@ -125,7 +125,7 @@ jobs:
 
       - name: Install BoringCache CLI with boringcache/one
         if: inputs.strategy == 'boringcache'
-        uses: boringcache/one@v1
+        uses: boringcache/one@one-canary-fa7e24f0f30f
         with:
           setup: none
           cli-version: ${{ inputs.cli_version }}
@@ -616,7 +616,7 @@ jobs:
 
       - name: Install BoringCache CLI with boringcache/one
         if: inputs.strategy == 'boringcache'
-        uses: boringcache/one@v1
+        uses: boringcache/one@one-canary-fa7e24f0f30f
         with:
           setup: none
           cli-version: ${{ inputs.cli_version }}
