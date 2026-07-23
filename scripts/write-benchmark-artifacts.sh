@@ -43,7 +43,7 @@
 #     by the aggregator. Build-only/setup splits and Docker rolling
 #     commit-build fields are emitted with nullable warm fields.
 #   - GitHub run context is emitted uniformly for every lane so BoringCache
-#     and GitHub Actions Cache artifacts can be compared by run id,
+#     and Actions Cache artifacts can be compared by run id,
 #     run number, and attempt without guessing from artifact names.
 #
 set -euo pipefail
@@ -806,15 +806,8 @@ native_tool_payload_from_inputs() {
     return
   fi
 
-  local stats_path=""
-  local tool="${native_tool_kind:-}"
-  if [[ -n "$native_tool_stats_file" ]]; then
-    stats_path="$native_tool_stats_file"
-    tool="${tool:-${adapter:-$mode}}"
-  elif [[ -n "$sccache_stats_file" ]]; then
-    stats_path="$sccache_stats_file"
-    tool="${tool:-sccache}"
-  fi
+  local stats_path="${native_tool_stats_file:-$sccache_stats_file}"
+  local tool="${native_tool_kind:-${adapter:-$mode}}"
   if [[ -n "$stats_path" ]]; then
     case "$tool" in
       sccache|rust-sccache|"")
