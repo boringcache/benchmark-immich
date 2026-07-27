@@ -35,7 +35,6 @@ This repo uses split BoringCache tokens as the standard CI shape:
 
 - `BORINGCACHE_RESTORE_TOKEN` for read-only restore and proxy access
 - `BORINGCACHE_SAVE_TOKEN` for trusted write paths
-- `BORINGCACHE_API_TOKEN` only where a single bearer variable is still required for compatibility
 
 ## Output
 
