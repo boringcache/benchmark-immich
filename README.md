@@ -2,7 +2,7 @@
 
 Isolated Immich benchmark runner for BoringCache vs GitHub Actions cache.
 
-Stable BoringCache workflows install the verified CLI `v1.16.3` release;
+Stable BoringCache workflows install the verified CLI `v1.16.4` release;
 canary dispatches must use an exact immutable CLI tag.
 
 This repo exists separately from the central benchmarks publisher so Immich can have:
@@ -30,7 +30,7 @@ Fresh lane runs a no-prior-cache cold build plus one warm rerun on the same pinn
 
 BoringCache uses its managed BuildKit backend as the single product lane and compares it with GitHub Actions Cache. It does not call BoringCache inside Dockerfile `RUN` steps, and upstream Dockerfile cache mounts stay native to BuildKit.
 
-Scheduled, PR, and rolling-dispatch runs use [`.github/workflows/immich-benchmark.yml`](.github/workflows/immich-benchmark.yml), which runs GitHub Actions Cache and BoringCache managed BuildKit side by side. Docker tool-cache lanes are intentionally absent until Immich has a static supported Turbo/Nx/sccache contract inside the measured Dockerfile.
+PR, manual, and upstream-sync runs use [`.github/workflows/immich-benchmark.yml`](.github/workflows/immich-benchmark.yml), which runs GitHub Actions Cache and BoringCache managed BuildKit side by side. The separate fresh workflow owns the weekly clean cohort. Docker tool-cache lanes are intentionally absent until Immich has a static supported Turbo/Nx/sccache contract inside the measured Dockerfile.
 
 ## Token Model
 
