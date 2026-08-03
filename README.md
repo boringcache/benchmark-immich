@@ -1,44 +1,5 @@
-# benchmark-immich
+# BoringCache Immich benchmark
 
-Isolated Immich benchmark runner for BoringCache vs GitHub Actions cache.
+This repository contains the BoringCache benchmark for Immich.
 
-Stable BoringCache workflows install the verified CLI `v1.16.4` release;
-canary dispatches must use an exact immutable CLI tag.
-
-This repo exists separately from the central benchmarks publisher so Immich can have:
-
-- a pinned upstream source commit
-- isolated GitHub Actions cache usage
-- one per-repo BoringCache workspace name: `boringcache/benchmark-immich`
-- independent benchmark runs triggered by upstream sync commits and manual dispatches
-
-## Source Model
-
-- upstream app source lives in the pinned `upstream/` submodule
-- workflows build the upstream Dockerfile with `upstream/` as the Docker context
-
-Pinned upstream source:
-
-- see committed `upstream/` submodule on `main`
-
-## Scenarios
-
-- `cold`
-- `warm1`
-
-Fresh lane runs a no-prior-cache cold build plus one warm rerun on the same pinned source tree. Rolling lane records the upstream commit build as-is after each upstream sync against the prior rolling cache and skips `warm1`.
-
-BoringCache uses its managed BuildKit backend as the single product lane and compares it with GitHub Actions Cache. It does not call BoringCache inside Dockerfile `RUN` steps, and upstream Dockerfile cache mounts stay native to BuildKit.
-
-PR, manual, and upstream-sync runs use [`.github/workflows/immich-benchmark.yml`](.github/workflows/immich-benchmark.yml), which runs GitHub Actions Cache and BoringCache managed BuildKit side by side. The separate fresh workflow owns the weekly clean cohort. Docker tool-cache lanes are intentionally absent until Immich has a static supported Turbo/Nx/sccache contract inside the measured Dockerfile.
-
-## Token Model
-
-This repo uses split BoringCache tokens as the standard CI shape:
-
-- `BORINGCACHE_RESTORE_TOKEN` for read-only restore and proxy access
-- `BORINGCACHE_SAVE_TOKEN` for trusted write paths
-
-## Output
-
-Each workflow uploads machine-readable JSON and Markdown summaries. Those artifacts are intended to be ingested by the central `boringcache/benchmarks` publisher later.
+Benchmark workflows are in [`.github/workflows/`](.github/workflows/), with configuration in [`.boringcache.toml`](.boringcache.toml).
