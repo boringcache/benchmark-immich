@@ -28,10 +28,9 @@ on:
   pull_request:
     paths:
       - ".gitmodules"
-      - ".github/actions/docker-rolling-benchmark/**"
       - ".github/workflows/immich-benchmark.yml"
       - ".github/workflows/immich-fresh-benchmark.yml"
-      - ".github/workflows/reusable-docker-buildkit-benchmark.yml"
+      - ".github/workflows/reusable-immich-docker-benchmark.yml"
       - "README.md"
       - "scenarios/**"
       - "scripts/**"
@@ -50,59 +49,20 @@ permissions:
 jobs:
   github-actions-cache:
     name: GHA
-    if: ${{ github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 180
-    env:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    steps:
-      - name: Checkout benchmark repo
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 1
-          submodules: false
-
-      - name: GHA
-        uses: ./.github/actions/docker-rolling-benchmark
-        with:
-          strategy: actions-cache
-          benchmark_id: immich${{ inputs.benchmark_id_suffix }}
-          project_repo: immich-app/immich
-          dockerfile_path: upstream/server/Dockerfile
-          docker_context: upstream
-          image_tag: immich-server-benchmark:latest
-          benchmark_workspace: ${{ github.repository }}
-          free_disk_space: true
+    uses: ./.github/workflows/reusable-immich-docker-benchmark.yml
+    with:
+      strategy: actions-cache
+      cache_lane: ${{ github.event_name == 'pull_request' && 'fresh' || 'rolling' }}
+      benchmark_id: ${{ format('immich{0}', inputs.benchmark_id_suffix) }}
+    secrets: inherit
 
   boringcache:
-    name: BoringCache
-    if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 180
-    env:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      BORINGCACHE_RESTORE_TOKEN: ${{ secrets.BORINGCACHE_RESTORE_TOKEN }}
-      BORINGCACHE_SAVE_TOKEN: ${{ secrets.BORINGCACHE_SAVE_TOKEN }}
-      BORINGCACHE_GHCR_READ_USER: ${{ vars.BORINGCACHE_GHCR_READ_USER || github.actor }}
-      BORINGCACHE_GHCR_READ_TOKEN: ${{ secrets.BORINGCACHE_GHCR_READ_TOKEN }}
-    steps:
-      - name: Checkout benchmark repo
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 1
-          submodules: false
-
-      - name: BoringCache
-        uses: ./.github/actions/docker-rolling-benchmark
-        with:
-          strategy: boringcache
-          benchmark_id: immich${{ inputs.benchmark_id_suffix }}
-          project_repo: immich-app/immich
-          dockerfile_path: upstream/server/Dockerfile
-          docker_context: upstream
-          image_tag: immich-server-benchmark:latest
-          cli_platform: linux-amd64
-          cli_version: ${{ inputs.cli_version }}
-          buildkit_image: ${{ inputs.buildkit_image }}
-          benchmark_workspace: ${{ github.repository }}
-          free_disk_space: true
+    name: BC
+    uses: ./.github/workflows/reusable-immich-docker-benchmark.yml
+    with:
+      strategy: boringcache
+      cache_lane: ${{ github.event_name == 'pull_request' && 'fresh' || 'rolling' }}
+      benchmark_id: ${{ format('immich{0}', inputs.benchmark_id_suffix) }}
+      cli_version: ${{ inputs.cli_version }}
+      buildkit_image: ${{ inputs.buildkit_image }}
+    secrets: inherit
