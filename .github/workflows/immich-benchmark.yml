@@ -32,7 +32,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/immich-docker-benchmark
-        with: {strategy: "${{ matrix.strategy }}", cache_lane: rolling, phase: publish, benchmark_id: "${{ format('immich{0}', inputs.benchmark_id_suffix) }}", cli_version: "${{ inputs.cli_version }}", buildkit_image: "${{ inputs.buildkit_image }}"}
+        with: {strategy: "${{ matrix.strategy }}", cache_lane: rolling, phase: publish, benchmark_id: "${{ format('immich{0}', inputs.benchmark_id_suffix) }}", cli_version: "${{ inputs.cli_version }}", buildkit_image: "${{ inputs.buildkit_image }}", push_image: "true"}
   report:
     name: Immich Docker rolling report
     needs: commit
