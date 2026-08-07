@@ -59,7 +59,6 @@ jobs:
       - name: Publish the Immich Docker benchmark report
         run: |
           python3 ./scripts/benchmark-report.py summarize \
-            --benchmark "$BENCHMARK_ID" \
             --title "Immich Docker fresh benchmark" \
             --input-dir phase-evidence \
             --output-dir benchmark-results
