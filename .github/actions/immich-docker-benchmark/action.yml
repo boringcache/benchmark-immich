@@ -20,6 +20,9 @@ runs:
       run: |
         git submodule sync --recursive
         git -c protocol.version=2 submodule update --init --depth 1 --recommend-shallow --jobs 4 upstream
+    - name: Verify the upstream benchmark recipe
+      shell: bash
+      run: python3 ./scripts/verify-upstream-recipe.py
     - name: Prepare clean Immich source
       shell: bash
       env:
@@ -76,9 +79,15 @@ runs:
       with:
         context: upstream
         file: upstream/server/Dockerfile
+        platforms: linux/amd64
         tags: ghcr.io/${{ github.repository_owner }}/immich-server-benchmark:actions-cache
         push: ${{ inputs.push_image == 'true' && github.ref == 'refs/heads/main' }}
-        provenance: false
+        build-args: |
+          BUILD_ID=${{ github.run_id }}
+          BUILD_IMAGE=ghcr.io/immich-app/immich-server:${{ github.ref_name }}
+          BUILD_SOURCE_REF=${{ github.ref_name }}
+          BUILD_SOURCE_COMMIT=${{ steps.scope.outputs.source_sha }}
+          DEVICE=cpu
         cache-from: type=gha,scope=${{ steps.scope.outputs.cache_scope }}
         cache-to: type=gha,scope=${{ steps.scope.outputs.cache_scope }},mode=max
     - name: Publish with BoringCache
@@ -95,6 +104,13 @@ runs:
         image: ghcr.io/${{ github.repository_owner }}/immich-server-benchmark
         tags: boringcache
         push: ${{ inputs.push_image == 'true' && github.ref == 'refs/heads/main' }}
+        platforms: linux/amd64
+        build-args: |
+          BUILD_ID=${{ github.run_id }}
+          BUILD_IMAGE=ghcr.io/immich-app/immich-server:${{ github.ref_name }}
+          BUILD_SOURCE_REF=${{ github.ref_name }}
+          BUILD_SOURCE_COMMIT=${{ steps.scope.outputs.source_sha }}
+          DEVICE=cpu
         load: false
         fail-on-cache-error: true
         metadata-hints: benchmark=${{ inputs.benchmark_id }},phase=${{ inputs.cache_lane == 'rolling' && 'rolling' || 'fresh-cold' }}
@@ -113,6 +129,13 @@ runs:
         image: ghcr.io/${{ github.repository_owner }}/immich-server-benchmark
         tags: boringcache
         push: ${{ inputs.push_image == 'true' && github.ref == 'refs/heads/main' }}
+        platforms: linux/amd64
+        build-args: |
+          BUILD_ID=${{ github.run_id }}
+          BUILD_IMAGE=ghcr.io/immich-app/immich-server:${{ github.ref_name }}
+          BUILD_SOURCE_REF=${{ github.ref_name }}
+          BUILD_SOURCE_COMMIT=${{ steps.scope.outputs.source_sha }}
+          DEVICE=cpu
         load: false
         fail-on-cache-miss: true
         fail-on-cache-error: true
