@@ -9,7 +9,7 @@ on:
       runner_label: {description: "Optional runner label for a manual main-branch experiment.", required: false, type: string, default: ""}
   push:
     branches: [main]
-    paths: [".gitmodules", "upstream"]
+    paths: [".gitmodules", "scripts/verify-upstream-recipe.py", "upstream"]
 concurrency: {group: "${{ github.workflow }}-${{ github.ref_name }}", cancel-in-progress: false}
 permissions: {contents: read, actions: write, packages: write}
 env:
