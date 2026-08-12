@@ -7,3 +7,7 @@ command = [
   "bash", "-euo", "pipefail", "-c",
   "source_sha=$(git -C upstream rev-parse HEAD); build_id=${GITHUB_RUN_ID:-local}; source_ref=${GITHUB_REF_NAME:-local}; exec docker buildx build --file upstream/server/Dockerfile --platform linux/amd64 --build-arg BUILD_ID=${build_id} --build-arg BUILD_IMAGE=ghcr.io/immich-app/immich-server:${source_ref} --build-arg BUILD_SOURCE_REF=${source_ref} --build-arg BUILD_SOURCE_COMMIT=${source_sha} --build-arg DEVICE=cpu --tag immich-server-benchmark:local upstream",
 ]
+
+[adapters.ccache]
+tag = "immich-ccache-local"
+metadata-hints = ["benchmark=immich-base-images", "upstream-job=server-dev-amd64"]

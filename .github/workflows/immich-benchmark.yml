@@ -1,8 +1,9 @@
 name: "Immich Benchmark"
-run-name: ${{ format('Benchmark {0} | {1}', inputs.cli_version != '' && 'Canary' || 'Rolling', github.event_name == 'push' && 'Upstream update' || format('Manual dispatch ({0})', github.ref_name)) }}
+run-name: ${{ inputs.base_images_ccache_experiment && format('Base images ccache | {0}', github.ref_name) || format('Benchmark {0} | {1}', inputs.cli_version != '' && 'Canary' || 'Rolling', github.event_name == 'push' && 'Upstream update' || format('Manual dispatch ({0})', github.ref_name)) }}
 on:
   workflow_dispatch:
     inputs:
+      base_images_ccache_experiment: {description: "Run the pinned base-server-dev ccache experiment instead of the app benchmark.", required: false, type: boolean, default: false}
       buildkit_image: {description: "Optional managed BoringCache BuildKit image.", required: false, type: string, default: ""}
       cli_version: {description: "Optional exact BoringCache CLI release tag.", required: false, type: string, default: ""}
       benchmark_id_suffix: {description: "Optional suffix for isolated comparison runs.", required: false, type: string, default: ""}
@@ -16,11 +17,13 @@ env:
   BORINGCACHE_RESTORE_TOKEN: ${{ secrets.BORINGCACHE_RESTORE_TOKEN }}
   BORINGCACHE_SAVE_TOKEN: ${{ secrets.BORINGCACHE_SAVE_TOKEN }}
   BORINGCACHE_NO_GIT: "true"
-  BENCHMARK_ID: ${{ format('immich{0}', inputs.benchmark_id_suffix) }}
+  BENCHMARK_ID: ${{ inputs.base_images_ccache_experiment && format('immich-base-images-ccache{0}', inputs.benchmark_id_suffix) || format('immich{0}', inputs.benchmark_id_suffix) }}
+  BASE_IMAGES_SEED_SOURCE_SHA: 6a64828581dea1086a4d6b764c74a2d93bf122ff
+  BASE_IMAGES_REBUILD_SOURCE_SHA: 6fdb212261ad1ece0a722e17ad17b60ac1b697ba
 jobs:
   commit:
     name: ${{ matrix.provider }} Immich commit
-    if: inputs.runner_label == '' || github.ref_name == 'main'
+    if: ${{ !inputs.base_images_ccache_experiment && (inputs.runner_label == '' || github.ref_name == 'main') }}
     runs-on: ${{ github.event_name == 'workflow_dispatch' && github.ref_name == 'main' && inputs.runner_label || 'ubuntu-latest' }}
     timeout-minutes: 180
     strategy:
@@ -36,6 +39,7 @@ jobs:
   report:
     name: Immich Docker rolling report
     needs: commit
+    if: ${{ !inputs.base_images_ccache_experiment }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -62,4 +66,67 @@ jobs:
         with:
           name: benchmark-${{ env.BENCHMARK_ID }}-actions-cache-rolling
           path: benchmark-results/${{ env.BENCHMARK_ID }}-actions-cache-rolling.json
+          if-no-files-found: error
+
+  base_images_seed:
+    name: ${{ matrix.provider }} base-images seed
+    if: ${{ inputs.base_images_ccache_experiment }}
+    runs-on: ${{ inputs.runner_label || 'ubuntu-latest' }}
+    timeout-minutes: 60
+    strategy: &base_images_provider_strategy
+      fail-fast: false
+      matrix:
+        include:
+          - {provider: GitHub Actions, strategy: actions-cache}
+          - {provider: BoringCache, strategy: boringcache}
+          - {provider: BoringCache + ccache, strategy: boringcache-ccache}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/immich-base-images-benchmark
+        with:
+          strategy: ${{ matrix.strategy }}
+          phase: seed
+          source_sha: ${{ env.BASE_IMAGES_SEED_SOURCE_SHA }}
+          benchmark_id: ${{ env.BENCHMARK_ID }}
+
+  base_images_rebuild:
+    name: ${{ matrix.provider }} base-images rebuild
+    if: ${{ inputs.base_images_ccache_experiment }}
+    needs: base_images_seed
+    runs-on: ${{ inputs.runner_label || 'ubuntu-latest' }}
+    timeout-minutes: 60
+    strategy: *base_images_provider_strategy
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/immich-base-images-benchmark
+        with:
+          strategy: ${{ matrix.strategy }}
+          phase: rebuild
+          source_sha: ${{ env.BASE_IMAGES_REBUILD_SOURCE_SHA }}
+          benchmark_id: ${{ env.BENCHMARK_ID }}
+
+  base_images_report:
+    name: Immich base-images ccache report
+    if: ${{ inputs.base_images_ccache_experiment }}
+    needs: base_images_rebuild
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - name: Download the benchmark phase evidence
+        uses: actions/download-artifact@v6
+        with:
+          pattern: phase-${{ env.BENCHMARK_ID }}-*
+          path: phase-evidence
+      - name: Publish the comparison
+        run: |
+          python3 ./scripts/benchmark-report.py summarize \
+            --title "Immich base-server-dev Node base-image rebuild" \
+            --input-dir phase-evidence \
+            --output-dir benchmark-results
+      - name: Retain the benchmark report
+        uses: actions/upload-artifact@v6
+        with:
+          name: benchmark-${{ env.BENCHMARK_ID }}
+          path: benchmark-results/
           if-no-files-found: error
