@@ -1,5 +1,5 @@
 name: "Run Immich base-images benchmark phase"
-description: "Builds one pinned Immich base-server-dev source revision with one cache provider."
+description: "Builds Immich's pinned native dependency graph with one cache provider."
 inputs:
   strategy: {required: true}
   phase: {required: true}
@@ -87,7 +87,7 @@ runs:
         context: base-images-upstream/server
         file: base-images-upstream/server/Dockerfile
         platforms: linux/amd64
-        target: dev
+        target: libvips
         push: false
         cache-from: ${{ inputs.phase == 'rebuild' && format('type=gha,scope={0}', steps.scope.outputs.cache_scope) || '' }}
         cache-to: ${{ inputs.phase == 'seed' && format('type=gha,scope={0},mode=max', steps.scope.outputs.cache_scope) || '' }}
@@ -102,9 +102,9 @@ runs:
         trust-policy: publish
         context: base-images-upstream/server
         dockerfile: base-images-upstream/server/Dockerfile
-        image: immich-base-server-dev-benchmark
+        image: immich-base-server-native-benchmark
         tags: ${{ inputs.strategy }}
-        target: dev
+        target: libvips
         platforms: linux/amd64
         push: false
         load: false
@@ -122,9 +122,9 @@ runs:
         trust-policy: restore
         context: base-images-upstream/server
         dockerfile: base-images-upstream/server/Dockerfile
-        image: immich-base-server-dev-benchmark
+        image: immich-base-server-native-benchmark
         tags: ${{ inputs.strategy }}
-        target: dev
+        target: libvips
         platforms: linux/amd64
         push: false
         load: false

@@ -10,4 +10,4 @@ command = [
 
 [adapters.ccache]
 tag = "immich-ccache-local"
-metadata-hints = ["benchmark=immich-base-images", "upstream-job=server-dev-amd64"]
+metadata-hints = ["benchmark=immich-base-images", "upstream-job=server-native-amd64"]

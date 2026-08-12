@@ -6,8 +6,9 @@ Benchmark workflows are in [`.github/workflows/`](.github/workflows/), with conf
 
 The `base_images_ccache_experiment` mode of the manual Immich benchmark compares
 the GitHub Actions cache, BoringCache's Docker layer cache, and BoringCache's
-Docker layer cache plus ccache. It rebuilds `base-server-dev` across a pinned
-Node base-image bump on fresh runners so compiler-object reuse is not confused
-with local BuildKit state.
+Docker layer cache plus ccache. It rebuilds the complete native dependency graph
+through the `libvips` stage across a pinned Node base-image bump on fresh runners
+so compiler-object reuse is not confused with local BuildKit state or unrelated
+FFmpeg and geodata downloads.
 
 The scheduled upstream sync automatically accepts new immutable revisions of Immich's reusable build workflow when the server context, Dockerfile, and CPU build argument remain compatible. A meaningful recipe change fails verification before the updated submodule is committed to `main`.
