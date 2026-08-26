@@ -20,6 +20,7 @@ PRODUCT_REF_FIELDS = (
 PROVIDER_LABELS = {
     "actions-cache": "GitHub Actions",
     "boringcache": "BoringCache",
+    "boringcache-ccache": "BoringCache + ccache",
     "boringcache-mountcache": "BoringCache mountcache",
     "boringcache-native": "BoringCache native",
     "boringcache-toolcache": "BoringCache toolcache",
@@ -30,7 +31,7 @@ PROVIDER_LABELS = {
 }
 
 BASELINE_STRATEGY = "actions-cache"
-CANDIDATE_STRATEGY = "boringcache"
+CANDIDATE_STRATEGIES = ("boringcache", "boringcache-ccache")
 
 PHASE_LABELS = {
     "cold": "Cold build",
@@ -361,14 +362,24 @@ def render_benchmark(
 
     for lane in lane_names:
         baseline = lanes.get((BASELINE_STRATEGY, "", lane))
-        candidate = lanes.get((CANDIDATE_STRATEGY, "", lane))
-        reference = candidate or baseline
+        candidates = [
+            (strategy, lanes[(strategy, "", lane)])
+            for strategy in CANDIDATE_STRATEGIES
+            if (strategy, "", lane) in lanes
+        ]
+        reference = next((candidate for _, candidate in candidates), baseline)
         if reference is None:
             continue
 
         lane_providers = sorted(
             {(strategy, variant) for strategy, variant, item in lanes if item == lane},
-            key=lambda entry: (entry[0] != CANDIDATE_STRATEGY, entry[0] != BASELINE_STRATEGY, bool(entry[1]), entry),
+            key=lambda entry: (
+                entry[0] not in CANDIDATE_STRATEGIES,
+                entry[0] != BASELINE_STRATEGY,
+                CANDIDATE_STRATEGIES.index(entry[0]) if entry[0] in CANDIDATE_STRATEGIES else len(CANDIDATE_STRATEGIES),
+                bool(entry[1]),
+                entry,
+            ),
         )
 
         lines.append(f"{heading} {lane.capitalize()} lane")
@@ -403,25 +414,27 @@ def render_benchmark(
 
         lines.append("")
 
-        if baseline and candidate:
-            for phase_name in LANE_PHASES[lane]:
-                total_field = PHASE_RUN_FIELDS[phase_name][0]
-                before = baseline["runs"].get(total_field)
-                after = candidate["runs"].get(total_field)
-                if before is None or after is None:
-                    continue
-                observed = (candidate.get("phase_observations") or {}).get(phase_name, {})
-                if phase_name != "cold" and not imported(candidate.get("mode"), observed):
+        if baseline:
+            for strategy, candidate in candidates:
+                for phase_name in LANE_PHASES[lane]:
+                    total_field = PHASE_RUN_FIELDS[phase_name][0]
+                    before = baseline["runs"].get(total_field)
+                    after = candidate["runs"].get(total_field)
+                    if before is None or after is None:
+                        continue
+                    observed = (candidate.get("phase_observations") or {}).get(phase_name, {})
+                    if phase_name != "cold" and not imported(candidate.get("mode"), observed):
+                        lines.append(
+                            f"- {PHASE_LABELS[phase_name]}: {PROVIDER_LABELS[strategy]} found no cache to import, "
+                            "so these timings are not like-for-like."
+                        )
+                        continue
                     lines.append(
-                        f"- {PHASE_LABELS[phase_name]}: {PROVIDER_LABELS[CANDIDATE_STRATEGY]} found no cache to import, "
-                        "so these timings are not like-for-like."
+                        f"- {PHASE_LABELS[phase_name]}: {PROVIDER_LABELS[strategy]} {format_seconds(after)} "
+                        f"vs {PROVIDER_LABELS[BASELINE_STRATEGY]} {format_seconds(before)} — **{format_delta(before, after)}**"
                     )
-                    continue
-                lines.append(
-                    f"- {PHASE_LABELS[phase_name]}: {PROVIDER_LABELS[CANDIDATE_STRATEGY]} {format_seconds(after)} "
-                    f"vs {PROVIDER_LABELS[BASELINE_STRATEGY]} {format_seconds(before)} — **{format_delta(before, after)}**"
-                )
-            lines.append("")
+            if candidates:
+                lines.append("")
 
     return lines
 

@@ -3,8 +3,9 @@
 
 import re
 import sys
-import tomllib
 from pathlib import Path
+
+import tomllib
 
 ROOT = Path(__file__).resolve().parents[1]
 EXPECTED_SCRIPT = "source_sha=$(git -C upstream rev-parse HEAD); build_id=${GITHUB_RUN_ID:-local}; source_ref=${GITHUB_REF_NAME:-local}; exec docker buildx build --file upstream/server/Dockerfile --platform linux/amd64 --build-arg BUILD_ID=${build_id} --build-arg BUILD_IMAGE=ghcr.io/immich-app/immich-server:${source_ref} --build-arg BUILD_SOURCE_REF=${source_ref} --build-arg BUILD_SOURCE_COMMIT=${source_sha} --build-arg DEVICE=cpu --tag immich-server-benchmark:local upstream"
