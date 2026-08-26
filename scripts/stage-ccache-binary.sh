@@ -2,9 +2,9 @@
 set -euo pipefail
 
 destination="${1:?usage: stage-ccache-binary.sh DESTINATION}"
-version="4.13.6"
+version="4.14"
 archive="ccache-${version}-linux-x86_64-glibc.tar.gz"
-checksum="567b1b648411819590f918f045218c92da14418bdec3b30db94a3b4f5d77cf13"
+checksum="c64760b0b85ba86068f4cd162dc42e2dc39c6f46b0cb8c1990dfccbec7a1fed0"
 temporary_dir="$(mktemp -d)"
 trap 'rm -rf "$temporary_dir"' EXIT
 

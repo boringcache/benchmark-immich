@@ -33,9 +33,9 @@ def render(source: str, profile: str) -> str:
         source,
         "  libaom-dev\n\nFROM base AS geodata\n",
         "  libaom-dev\n\n"
-        "# BoringCache v1.19.1 targets ccache 4.13.6's @-attribute syntax.\n"
+        "# BoringCache's current ccache adapter targets ccache 4.14's @-attribute syntax.\n"
         "# Keep Debian's compiler wrappers, but replace its older ccache binary.\n"
-        "ARG CCACHE_VERSION=4.13.6\n"
+        "ARG CCACHE_VERSION=4.14\n"
         "COPY ccache /usr/bin/ccache\n"
         "RUN chmod 0755 /usr/bin/ccache && \\\n"
         "  ccache --version | grep -F \"ccache version ${CCACHE_VERSION}\"\n\n"
