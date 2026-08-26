@@ -6,6 +6,7 @@ on:
     - cron: "12,42 * * * *"
 
 permissions:
+  actions: write
   contents: write
 
 concurrency:
@@ -22,7 +23,7 @@ jobs:
         with:
           fetch-depth: 0
           submodules: false
-          token: ${{ secrets.BOT_PUBLIC_GITHUB_TOKEN }}
+          token: ${{ github.token }}
 
       - name: Sync upstream submodule
         run: |
@@ -34,8 +35,10 @@ jobs:
         run: python3 ./scripts/verify-upstream-recipe.py
 
       - name: Commit compatible upstream update
+        id: sync
         run: |
           set -euo pipefail
+          echo "updated=false" >> "$GITHUB_OUTPUT"
           git config --global user.name "boringcache-bot"
           git config --global user.email "boringcache-bot@users.noreply.github.com"
 
@@ -62,3 +65,10 @@ jobs:
           git add upstream
           git commit -m "Update upstream to ${upstream_repo}@${commit_sha}"
           git push origin HEAD:main
+          echo "updated=true" >> "$GITHUB_OUTPUT"
+
+      - name: Dispatch rolling benchmark
+        if: steps.sync.outputs.updated == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run immich-benchmark.yml --repo "$GITHUB_REPOSITORY" --ref main
