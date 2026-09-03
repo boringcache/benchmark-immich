@@ -21,8 +21,8 @@ if source.count(docker_tag) != 1:
     raise SystemExit(f"Missing expected local Docker tag in {config_path}")
 
 source = source.replace(docker_tag, f'tag = "{scope}-docker"', 1)
-if source.count(ccache_tag) > 1:
-    raise SystemExit(f"Expected at most one local ccache tag in {config_path}")
+if source.count(ccache_tag) != 1:
+    raise SystemExit(f"Missing expected local ccache tag in {config_path}")
 source = source.replace(ccache_tag, f'tag = "{scope}-ccache"', 1)
 config_path.write_text(source)
 PY

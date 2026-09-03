@@ -34,11 +34,14 @@ def render(source: str, profile: str) -> str:
         "  libaom-dev\n\nFROM base AS geodata\n",
         "  libaom-dev\n\n"
         "# BoringCache's current ccache adapter targets ccache 4.14's @-attribute syntax.\n"
-        "# Keep Debian's compiler wrappers, but replace its older ccache binary.\n"
+        "# Keep Debian's compiler wrappers, but replace its older ccache binary and HTTP helper.\n"
         "ARG CCACHE_VERSION=4.14\n"
+        "ARG CCACHE_STORAGE_HTTP_VERSION=0.9\n"
         "COPY ccache /usr/bin/ccache\n"
-        "RUN chmod 0755 /usr/bin/ccache && \\\n"
-        "  ccache --version | grep -F \"ccache version ${CCACHE_VERSION}\"\n\n"
+        "COPY ccache-storage-http /usr/bin/ccache-storage-http\n"
+        "RUN chmod 0755 /usr/bin/ccache /usr/bin/ccache-storage-http && \\\n"
+        "  ccache --version | grep -F \"ccache version ${CCACHE_VERSION}\" && \\\n"
+        "  ccache-storage-http --version 2>&1 | grep -F \"Version: ${CCACHE_STORAGE_HTTP_VERSION}\"\n\n"
         'ENV PATH="/usr/lib/ccache:${PATH}"\n\n'
         "FROM base AS geodata\n",
         "base stage boundary",
