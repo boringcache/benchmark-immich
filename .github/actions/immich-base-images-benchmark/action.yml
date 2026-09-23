@@ -105,7 +105,7 @@ runs:
     - name: Publish the BoringCache seed
       id: publish
       if: startsWith(inputs.strategy, 'boringcache') && inputs.phase == 'seed'
-      uses: boringcache/one@9ca311f9b247835b3cc87639321c79bac8018145 # v1 / 1.31.0
+      uses: boringcache/one@476c7df90bc1e7c2c4066aa7eb31cc057ef7f8d1 # v1 / 1.32.0
       with:
         mode: docker
         trust-policy: publish
@@ -113,7 +113,7 @@ runs:
     - name: Restore the BoringCache rebuild
       id: restore
       if: startsWith(inputs.strategy, 'boringcache') && inputs.phase == 'rebuild'
-      uses: boringcache/one@9ca311f9b247835b3cc87639321c79bac8018145 # v1 / 1.31.0
+      uses: boringcache/one@476c7df90bc1e7c2c4066aa7eb31cc057ef7f8d1 # v1 / 1.32.0
       with:
         mode: docker
         trust-policy: restore
