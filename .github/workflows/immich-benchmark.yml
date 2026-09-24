@@ -71,7 +71,7 @@ jobs:
   base_images_seed:
     name: ${{ matrix.provider }} base-images seed
     if: ${{ inputs.base_images_ccache_experiment }}
-    runs-on: ${{ inputs.runner_label || 'ubuntu-latest' }}
+    runs-on: ${{ github.event_name == 'workflow_dispatch' && github.ref_name == 'main' && inputs.runner_label || 'ubuntu-latest' }}
     timeout-minutes: 60
     strategy: &base_images_provider_strategy
       fail-fast: false
@@ -93,7 +93,7 @@ jobs:
     name: ${{ matrix.provider }} base-images rebuild
     if: ${{ inputs.base_images_ccache_experiment }}
     needs: base_images_seed
-    runs-on: ${{ inputs.runner_label || 'ubuntu-latest' }}
+    runs-on: ${{ github.event_name == 'workflow_dispatch' && github.ref_name == 'main' && inputs.runner_label || 'ubuntu-latest' }}
     timeout-minutes: 60
     strategy: *base_images_provider_strategy
     steps:
